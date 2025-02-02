@@ -1,29 +1,15 @@
+#region imports
 import asyncio
-from functools import cmp_to_key
-from sys import set_int_max_str_digits
-
 import telnetlib3
 import re
 import base64
 import os
 import random
-
 from moduals.AI_communication import OllamaClient
+#endregion
 
 
-async def send_command(writer, reader, command, expected_response_start):
-    """
-    Sends a command to the SMTP server and prints the response.
-
-    :param writer: The Telnet writer stream.
-    :param reader: The Telnet reader stream.
-    :param command: The command string to send.
-    :param expected_response_start: The expected start of the server's response (as a bytes object).
-    """
-    writer.write(command + '\r\n')
-    response = await reader.readuntil(expected_response_start)
-    print(f"Sent: {command}\nReceived: {response.decode('utf-8')}")
-
+#region formating files for email
 
 def __add_file_to_data(files_info:dict):
     return f"""
@@ -35,29 +21,9 @@ def __add_file_to_data(files_info:dict):
     {files_info["f_data"]}
 """
 
-def __add_text_to_data(text_sent:str):
-    return f"""
-    Content-Type: text/plain; charset=\"UTF-8\"
-    Content-Transfer-Encoding: 7bit
-    
-    {text_sent}
-"""
-
-
-def __add_header_to_data(user_from:str, user_to:str,subject:str, boundary_word:str,content_type:str="multipart/mixed"):
-    return f"""
-    FROM: {user_from}
-    TO:{user_to}
-    SUBJECT:{subject}
-    MIME-VERSION: 1.0
-    Content-type: {content_type}; boundary={boundary_word}
-    """
-
-
 def __file_to_base64_string(file_path: str) -> str:
     with open(file_path, "rb") as file:
         return base64.b64encode(file.read()).decode("utf-8")
-
 
 def __format_joint_file(file_path:str)->dict:
     file_name_reg:str = "[^\\/]+$"
@@ -71,6 +37,25 @@ def __format_joint_file(file_path:str)->dict:
     }
     return file_information
 
+#endregion
+
+#region format email
+def __add_text_to_data(text_sent: str):
+    return f"""
+    Content-Type: text/plain; charset=\"UTF-8\"
+    Content-Transfer-Encoding: 7bit
+
+    {text_sent}
+"""
+
+def __add_header_to_data(user_from:str, user_to:str,subject:str, boundary_word:str,content_type:str="multipart/mixed"):
+    return f"""
+    FROM: {user_from}
+    TO:{user_to}
+    SUBJECT:{subject}
+    MIME-VERSION: 1.0
+    Content-type: {content_type}; boundary={boundary_word}
+    """
 
 def __make_data(user_from:str, user_to:str, subject:str, text_message:str, files_to_join:list[str], boundary_word:str="BOUNDARY")->str:
 
@@ -94,8 +79,11 @@ def __make_data(user_from:str, user_to:str, subject:str, text_message:str, files
 
     return mail
 
+#endregion
 
-async def send_email(server_ip:str,sender:str,recipient:str,subject:str, message:str, files_to_join:list[str], server_port:int=25) -> None:
+#region network communication for email
+
+async def __send_email(server_ip:str,sender:str,recipient:str,subject:str, message:str, files_to_join:list[str], server_port:int=25) -> None:
     # SMTP server details
     smtp_server = server_ip
     port = server_port
@@ -111,28 +99,44 @@ async def send_email(server_ip:str,sender:str,recipient:str,subject:str, message
     print(f"Connected to server:\n{response.decode('utf-8')}")
 
     # Send EHLO command
-    await send_command(writer, reader, 'EHLO localhost', b'250')
+    await __send_command(writer, reader, 'EHLO localhost', b'250')
 
     # Specify the sender
-    await send_command(writer, reader, f'MAIL FROM:<{sender}>', b'250')
+    await __send_command(writer, reader, f'MAIL FROM:<{sender}>', b'250')
 
     # Specify the recipient
-    await send_command(writer, reader, f'RCPT TO:<{recipient}>', b'250')
+    await __send_command(writer, reader, f'RCPT TO:<{recipient}>', b'250')
 
 
     # Send the DATA command to begin the message body
-    await send_command(writer, reader, 'DATA', b'354')
+    await __send_command(writer, reader, 'DATA', b'354')
     # Send the email headers and body
     email_content = f'From: {sender}\r\nTo: {recipient}\r\nSubject: {subject}\r\n\r\n{body}\r\n.'
-    await send_command(writer, reader, email_content, b'250')
+    await __send_command(writer, reader, email_content, b'250')
 
     # Close the connection
-    await send_command(writer, reader, 'QUIT', b'221')
+    await __send_command(writer, reader, 'QUIT', b'221')
 
     writer.close()
 
     print('Email sent successfully.')
 
+async def __send_command(writer, reader, command, expected_response_start):
+    """
+    Sends a command to the SMTP server and prints the response.
+
+    :param writer: The Telnet writer stream.
+    :param reader: The Telnet reader stream.
+    :param command: The command string to send.
+    :param expected_response_start: The expected start of the server's response (as a bytes object).
+    """
+    writer.write(command + '\r\n')
+    response = await reader.readuntil(expected_response_start)
+    print(f"Sent: {command}\nReceived: {response.decode('utf-8')}")
+
+#endregion
+
+#region get all information
 
 def __get_path_to_accessible_files(path:str)->list[str]:
     if not os.path.exists(path):
@@ -143,9 +147,12 @@ def __get_path_to_accessible_files(path:str)->list[str]:
         all_path.append(f'{path}/{e}')
     return all_path
 
-
 def __get_an_email(email_list:list[str],domain:str):
     return f"{email_list[random.randint(0,len(email_list)-1)]}{domain}"
+
+#endregion
+
+#region random
 
 def __do_we_put_joint_file()->bool:
     return True if random.randint(0,1) < 1 else False
@@ -153,6 +160,10 @@ def __do_we_put_joint_file()->bool:
 def __get_random_file(list_of_files:list[str])->list[str]:
     # TODO make something to have a possibility to have more than one files link
     return [list_of_files[random.randint(0,len(list_of_files)-1)]]
+
+#endregion
+
+#region accessible functions
 
 def instantiate_email(server_ip:str, email_list:list[str],domain:str,amount_of_email:int, ai_communication:OllamaClient, files_directory:str):
     # Run the asyncio event loop
@@ -168,5 +179,7 @@ def instantiate_email(server_ip:str, email_list:list[str],domain:str,amount_of_e
         subject:str = ai_communication.generate_text(f"Please make a subject title for this email : {message}.\nKeep it friendly or work related.")
         files_list:list[str] = [""] if not __do_we_put_joint_file() else __get_random_file(all_possible_files)
 
-        asyncio.run(send_email(server_ip=server_ip,sender=sender,recipient=receiver,subject=subject,message=message, files_to_join=files_list))
+        asyncio.run(__send_email(server_ip=server_ip,sender=sender,recipient=receiver,subject=subject,message=message, files_to_join=files_list))
     print("all asked email where sent")
+
+#endregion
