@@ -1,0 +1,1 @@
+#TODO: Behing able to simulate a NMAP scan if wanted. making ICMP noise from a couple devices ( potentially need to use SSH who know we'll do it once there )
