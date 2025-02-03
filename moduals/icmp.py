@@ -11,7 +11,11 @@ def ping(dest:str, ping_amount:int = 4):
 def tracert(dest:str):
     try:
         subprocess.run(f'traceroute {dest}',shell=True)
+        return
     except:
-        print(f"Was not able to find a route to {dest}")
-
+        pass
+    try:
+        subprocess.run(f'tracert {dest}', shell=True)
+    except:
+        print(f'Was not able to find a route to {dest}')
 
