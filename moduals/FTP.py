@@ -1,4 +1,3 @@
-#TODO : Make a random download (maybe upload ) and connection to the FTP server.
 from ftplib import FTP
 
 def connect_to_server(server_ip:str, username:str='',password:str='') -> FTP:
