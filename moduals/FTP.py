@@ -5,8 +5,10 @@ def connect_to_server(server_ip:str, username:str='',password:str='') -> FTP:
     ftp.login(username,password)
     return ftp
 
+
 def quit_server(ftp:FTP):
     ftp.quit()
+
 
 def get_ftp_files(ftp:FTP)-> list[str]:
     """
