@@ -147,9 +147,6 @@ def __get_path_to_accessible_files(path:str)->list[str]:
         all_path.append(f'{path}/{e}')
     return all_path
 
-def __get_an_email(email_list:list[str],domain:str):
-    return f"{email_list[random.randint(0,len(email_list)-1)]}{domain}"
-
 #endregion
 
 #region random
@@ -165,21 +162,17 @@ def __get_random_file(list_of_files:list[str])->list[str]:
 
 #region accessible functions
 
-def instantiate_email(server_ip:str, email_list:list[str],domain:str,amount_of_email:int, ai_communication:OllamaClient, files_directory:str):
+def instantiate_email(server_ip:str, email_from:str,email_to:str, email_text_information:str,email_title:str, file_to_send_path:str):
     # Run the asyncio event loop
 
-    all_possible_files:list[str] = __get_path_to_accessible_files(files_directory)
+    print("starting new email")
+    sender = email_from
+    receiver = email_to
+    message:str = email_text_information
+    subject:str = email_title
 
-    for _ in range(amount_of_email):
-        print("starting new email")
-        sender = __get_an_email(email_list, domain)
-        receiver = __get_an_email(email_list,domain)
-        message:str = ai_communication.generate_text(f"You are doing a email communication from {sender} to {receiver}.You are {sender}. You can decide what you are telling. "
-                                                     f"Please make it as if it was either work or friend related or for your own memory if you are sending it to yourself. ")
-        subject:str = ai_communication.generate_text(f"Please make a subject title for this email : {message}.\nKeep it friendly or work related.")
-        files_list:list[str] = [""] if not __do_we_put_joint_file() else __get_random_file(all_possible_files)
-
-        asyncio.run(__send_email(server_ip=server_ip,sender=sender,recipient=receiver,subject=subject,message=message, files_to_join=files_list))
+    asyncio.run(__send_email(server_ip=server_ip,sender=sender,recipient=receiver,subject=subject,message=message, files_to_join=    file_to_send_path
+))
     print("all asked email where sent")
 
 #endregion
