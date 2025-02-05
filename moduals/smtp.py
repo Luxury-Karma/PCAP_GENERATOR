@@ -57,7 +57,7 @@ def __add_header_to_data(user_from:str, user_to:str,subject:str, boundary_word:s
     Content-type: {content_type}; boundary={boundary_word}
     """
 
-def __make_data(user_from:str, user_to:str, subject:str, text_message:str, files_to_join:list[str], boundary_word:str="BOUNDARY")->str:
+def make_data(user_from:str, user_to:str, subject:str, text_message:str, files_to_join:list[str], boundary_word:str="BOUNDARY")->str:
 
     mail:str = ""
     #ensuring every email have their proper header
@@ -88,7 +88,7 @@ async def __send_email(server_ip:str,sender:str,recipient:str,subject:str, messa
     smtp_server = server_ip
     port = server_port
 
-    body = __make_data(user_to=recipient,user_from=sender,subject=subject,text_message=message,
+    body = make_data(user_to=recipient,user_from=sender,subject=subject,text_message=message,
           files_to_join=files_to_join)
 
     # Establish a Telnet connection to the SMTP server

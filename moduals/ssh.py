@@ -1,4 +1,6 @@
 #TODO : Make random connection to SSH some making as if they where bruteforcing the connection. If its a okay one do a couple random commande to just make pcap.
+import time
+
 import paramiko
 from paramiko.client import SSHClient
 
@@ -26,6 +28,30 @@ def send_command_to_shell(shell: paramiko.SSHClient, command: str):
     else:
         print(f"Error: {error}")
         return False, error  # Indicating failure
+
+
+def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, str]]):
+    shell = ssh.invoke_shell()
+    time.sleep(1)  # Allow the shell to initialize
+
+    for cmd, wait_for in commands:
+        output = send_command_interactive(shell, cmd, wait_for, timeout=5)
+        print(f"Command: {cmd}\nResponse: {output}\n")
+
+
+def send_command_interactive(int_shell: paramiko.channel, command: str, wait_for: str, timeout: int = 5) -> str:
+    int_shell.send(command + '\n')
+    output = ""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if int_shell.recv_ready():
+            recv = int_shell.recv(1024).decode("utf-8")
+            output += recv
+            # Check if the expected response is in the output
+            if wait_for in output:
+                break
+        time.sleep(0.2)
+    return output
 
 
 #TODO: Add the bruteforce thing here. We could also use Hydra command line from a kali machine that we connect through SSH?

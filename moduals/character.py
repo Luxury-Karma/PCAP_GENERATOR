@@ -1,7 +1,6 @@
-from moduals.AI_communication import OllamaClient
-from moduals.AI_communication import option_detection
-from moduals import ssh
-from moduals.smtp import instantiate_email,__make_data
+from moduals.AI_communication import OllamaClient,option_detection
+from moduals import ssh, smtp
+from moduals.smtp import instantiate_email,make_data
 
 class Character:
     def __init__(self,ai:OllamaClient,computer_connection:ssh.SSHClient,smtp_ip_ip:str,character_mail:str):
@@ -16,10 +15,6 @@ class Character:
         decision =  option_detection(self.ai.generate_response(prompt))
         self.last_decision=decision
 
-    def send_command(self, command:str):
-        stdin, stdout, stderr = self.ssh.exec_command(command)
-        stdout.channel.recv_exit_status()  # Wait for command to complete
-        return stdout.read().decode(), stderr.read().decode()
 
     def control_email(self):
         """
@@ -28,16 +23,21 @@ class Character:
         """
         email_dest: str = f'{self.email}'  # TODO: AI should choose the email recipient
         email_subject: str = 'test'  # TODO: AI should decide the subject
-        email_body: str = __make_data(self.email,self.email,email_subject,'I am a test', [])  # TODO: Ensure the body is properly formatted with smtp.py functions
-        email_content = f'From: {self.email}\r\nTo: {email_dest}\r\nSubject: {email_subject}\r\n\r\n{email_body}\r\n.'
+        email_body: str = smtp.make_data(self.email,self.email,email_subject,'I am a test', [])  # TODO: Ensure the body is properly formatted with smtp.py functions
+        email_content:str = f'From: {self.email}\r\nTo: {email_dest}\r\nSubject: {email_subject}\r\n\r\n{email_body}\r\n.'
 
-        self.send_command(f'telnet {self.smtp_ip} 25')
-        self.send_command('EHLO localhost')
-        self.send_command(f'MAIL FROM: {self.email}')
-        self.send_command(f'RCPT TO:{email_dest}')
-        self.send_command('DATA')
-        self.send_command(email_content)
-        self.send_command('QUIT')
+        all_commands:list[tuple[str, str]] = [
+            (f'telnet {self.smtp_ip} 25', "220"),  # Expect a 220 greeting
+            ("EHLO localhost", "250"),  # Expect 250 response
+            (f'MAIL FROM: {self.email}', "250"),  # Expect 250
+            (f'RCPT TO:{email_dest}', "250"),  # Expect 250
+            ("DATA", "354"),  # Expect 354 before email content
+            (email_content, "250"),  # After content, expect 250
+            ("QUIT", "221")  # Expect 221 on quit
+        ]
+
+        ssh.send_multi_shell_command(self.ssh,all_commands)
+
 
         return
 

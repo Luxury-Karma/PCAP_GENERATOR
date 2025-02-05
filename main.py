@@ -7,7 +7,7 @@ def main():
     personality+= ('You are Bob a salty employee waiting to loose his job. Doing the least amount of work is your goal.'
                    'You are still somewhat reliable on some task and will not act against the company willingly.')
     t:OllamaClient = OllamaClient(personality)
-    s = ssh.connect_to_ssh_server('10.0.0.14','kali','kali')
+    s,_ = ssh.connect_to_ssh_server('10.0.0.14','kali','kali')
     c:Character = Character(t,s,'10.0.0.14','kali@gotscam.com')
     c.control_email()
 
