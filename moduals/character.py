@@ -10,7 +10,7 @@ class Character:
         self.smtp_ip:str = smtp_ip_ip
         self.email:str = character_mail
 
-    def make_decision(self):
+    def make_decision(self) :
         prompt:str = 'Rolle back to your base option given at the start of the conversation.'if  self.last_decision == '' else f'Rolle back to your base option given at the start of the conversation. your last decision was : {self.last_decision}. maybe try to vary a bit?'
         decision =  option_detection(self.ai.generate_response(prompt))
         self.last_decision=decision
@@ -45,6 +45,11 @@ class Character:
         website is open on the local machine
         :return:
         """
+
+        # Windows commands to launch website from browser : $<variable> = start-process "WEBSITE" -Passthru
+        # to stop : stop-process -Id $proc.Id
+        # Else we can use : curl + webpage to go on the webpage on both OS
+        # On linux we can launch something like : tmux to launch a browser or : google-chrome-stable https:/www.youtube.com
         pass
 
     def control_ssh(self):
