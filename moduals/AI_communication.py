@@ -33,10 +33,11 @@ def get_basic_prompt()->str:
 
 
 class OllamaClient:
-    def __init__(self, system_message=None, model='llama3'):
-        self.model = model
-        self.system_message = system_message
-        self.conversation_history = []
+    def __init__(self, system_message=None,ai_name:str='', model='llama3'):
+        self.model:str = model
+        self.system_message:str = system_message
+        self.name:str= ai_name
+        self.conversation_history:list[dict] = []
         if self.system_message:
             self.conversation_history.append({'role': 'system', 'content': self.system_message})
 

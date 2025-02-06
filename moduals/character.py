@@ -16,24 +16,22 @@ class Character:
         self.last_decision=decision
 
 
-    def control_email(self):
+    def control_email(self,destination:str, message:str, subject:str):
         """
         Give option to the AI and then send the command to the machine through the SSH connection
         to ensure that the email was sent.
         """
-        email_dest: str = f'{self.email}'  # TODO: AI should choose the email recipient
-        email_subject: str = 'test'  # TODO: AI should decide the subject
-        email_body: str = smtp.make_data(self.email,self.email,email_subject,'I am a test', [])  # TODO: Ensure the body is properly formatted with smtp.py functions
-        email_content:str = f'From: {self.email}\r\nTo: {email_dest}\r\nSubject: {email_subject}\r\n\r\n{email_body}\r\n.'
+        email_body: str = smtp.make_data(self.email,destination,subject, message, [])  # TODO: Ensure the body is properly formatted with smtp.py functions
+        email_content:str = f'From: {self.email}\r\nTo: {destination}\r\nSubject: {subject}\r\n\r\n{email_body}\r\n.'
 
         all_commands:list[tuple[str, str]] = [
-            (f'telnet {self.smtp_ip} 25', "220"),  # Expect a 220 greeting
-            ("EHLO localhost", "250"),  # Expect 250 response
-            (f'MAIL FROM: {self.email}', "250"),  # Expect 250
-            (f'RCPT TO:{email_dest}', "250"),  # Expect 250
-            ("DATA", "354"),  # Expect 354 before email content
-            (email_content, "250"),  # After content, expect 250
-            ("QUIT", "221")  # Expect 221 on quit
+            (f'telnet {self.smtp_ip} 25', "220"),
+            ("EHLO localhost", "250"),
+            (f'MAIL FROM: {self.email}', "250"),
+            (f'RCPT TO:{destination}', "250"),
+            ("DATA", "354"),
+            (email_content, "250"),
+            ("QUIT", "221")
         ]
 
         ssh.send_multi_shell_command(self.ssh,all_commands)
