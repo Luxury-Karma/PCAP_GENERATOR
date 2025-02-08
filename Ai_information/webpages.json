@@ -1,0 +1,19 @@
+{
+  "google": {
+    "url": "https://www.google.com/",
+    "explanation": "Search engine",
+    "tool": "curl"
+  },
+  "Facebook": {
+    "url": "https://www.facebook.com/",
+    "explanation": "Social website for older people and AI generated image enjoyer"
+  },
+  "Youtube": {
+    "url" : "https://www.youtube.com/",
+    "explanation": "A website made for posting and listening to video made by other people. Greate way to pass time!"
+  },
+  "Stackoverflow": {
+    "url": "",
+    "explanation": "A website made for programing and IT information. Greate to find answer to your question!"
+  }
+}

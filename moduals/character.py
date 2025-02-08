@@ -3,12 +3,21 @@ from moduals import ssh, smtp
 from moduals.smtp import instantiate_email,make_data
 
 class Character:
-    def __init__(self,ai:OllamaClient,computer_connection:ssh.SSHClient,smtp_ip_ip:str,character_mail:str):
+    def __init__(self,ai:OllamaClient,computer_connection:ssh.SSHClient,smtp_ip_ip:str,character_mail:str, character_os:str):
+        """
+        Each net user with their action and all the information we need to make them work
+        :param ai: the Llama persona
+        :param computer_connection: the SSH connection to the computer
+        :param smtp_ip_ip: Where is the mail server
+        :param character_mail: what is the user email
+        :param character_os: What os is the user using ( mostly use for commands ) (options : Windows, Windows Server, Linux)
+        """
         self.ai:OllamaClient = ai
         self.ssh:ssh.SSHClient = computer_connection
         self.last_decision:str = ''
         self.smtp_ip:str = smtp_ip_ip
         self.email:str = character_mail
+        self.os:str = character_os
 
     def make_decision(self) :
         prompt:str = 'Rolle back to your base option given at the start of the conversation.'if  self.last_decision == '' else f'Rolle back to your base option given at the start of the conversation. your last decision was : {self.last_decision}. maybe try to vary a bit?'

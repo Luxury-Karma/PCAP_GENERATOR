@@ -3,19 +3,22 @@ import time
 
 import paramiko
 from paramiko.client import SSHClient
+from paramiko import channel
 
 
 def connect_to_ssh_server(ssh_server_ip:str,user_name:str,password:str,port:int=22,timeout:int=3)->[SSHClient,bool]:
     ssh:SSHClient = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        ssh.connect(ssh_server_ip,port=port,username=user_name,password=password,timeout=timeout)
+        print(f"trying to connect at : {ssh_server_ip}, with the user and password : {user_name}/{password} on port {port}")
+        ssh.connect(hostname=ssh_server_ip,port=port,username=user_name,password=password,timeout=timeout)
         return ssh,True
-    except:
+    except  Exception as e:
+        print(f'could not connect to ssh {e}')
         return ssh, False
 
 
-def send_command_to_shell(shell: paramiko.SSHClient, command: str):
+def send_command_to_shell(shell: paramiko.SSHClient, command: str) -> (bool,str):
     stdin, stdout, stderr = shell.exec_command(command)
 
     exit_status = stdout.channel.recv_exit_status()  # Get exit status
@@ -31,15 +34,15 @@ def send_command_to_shell(shell: paramiko.SSHClient, command: str):
 
 
 def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, str]]):
-    shell = ssh.invoke_shell()
-    time.sleep(1)  # Allow the shell to initialize
+    shell = get_interactive_shell(ssh)
 
     for cmd, wait_for in commands:
         output = send_command_interactive(shell, cmd, wait_for, timeout=5)
         print(f"Command: {cmd}\nResponse: {output}\n")
+    shell.close()
 
 
-def send_command_interactive(int_shell: paramiko.channel, command: str, wait_for: str, timeout: int = 5) -> str:
+def send_command_interactive(int_shell: channel, command: str, wait_for: str, timeout: int = 5) -> str:
     int_shell.send(command + '\n')
     output = ""
     start_time = time.time()
@@ -52,6 +55,12 @@ def send_command_interactive(int_shell: paramiko.channel, command: str, wait_for
                 break
         time.sleep(0.2)
     return output
+
+def get_interactive_shell(shell:SSHClient):
+    int_shell:channel = shell.invoke_shell()
+    time.sleep(1)
+    time.sleep(1)
+    return int_shell
 
 
 #TODO: Add the bruteforce thing here. We could also use Hydra command line from a kali machine that we connect through SSH?
