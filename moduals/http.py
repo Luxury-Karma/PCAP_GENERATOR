@@ -13,6 +13,7 @@ def open_website(domain_name:str, character:Character ) -> None or channel:
         curl_website(domain_name,character.ssh)
         print('windows')
         return
+    curl_website(domain_name, character.ssh)
     return
     # TODO : We need to find a bether solution than this to open web broswer on the forein host.
     # What we could do is give them all a bash script that we can control from outside but launch their basic web broswer and go where we tell it.
