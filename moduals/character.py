@@ -154,8 +154,9 @@ class Character:
             if re.findall(e,answer):
                 choice = e
                 break
+        #TODO use a proper output sanitiser with limitation and worst case " random " selection or something like that.
+        # Actualy randomly selecting the file might be better? lets see in the future now I need to leave 😪
         while choice == '':
-            print(f'{self.ai.name} is not trying :(')
             answer = self.ai.generate_response(f'I told you those : {files} are the only one you can choose. You need to choose one of those. Its an order.')
             for e in files:
                 if re.findall(e, answer):
