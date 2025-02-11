@@ -1,9 +1,11 @@
 from moduals.AI_communication import OllamaClient,option_detection
 from moduals import ssh, smtp
 from moduals.smtp import instantiate_email,make_data
+from paramiko import channel
 
 class Character:
-    def __init__(self,ai:OllamaClient,computer_connection:ssh.SSHClient,smtp_ip_ip:str,character_mail:str, character_os:str):
+    def __init__(self,ai:OllamaClient,computer_connection:ssh.SSHClient,smtp_ip_ip:str,character_mail:str, character_os:str,
+                 character_ftp_server:str, character_ftp_user:str = 'anonymous', character_ftp_password:str = ''):
         """
         Each net user with their action and all the information we need to make them work
         :param ai: the Llama persona
@@ -18,6 +20,9 @@ class Character:
         self.smtp_ip:str = smtp_ip_ip
         self.email:str = character_mail
         self.os:str = character_os
+        self.ftp_server:str = character_ftp_server
+        self.ftp_user: str = character_ftp_user
+        self.ftp_pass: str = character_ftp_password
 
     def make_decision(self) :
         prompt:str = 'Rolle back to your base option given at the start of the conversation.'if  self.last_decision == '' else f'Rolle back to your base option given at the start of the conversation. your last decision was : {self.last_decision}. maybe try to vary a bit?'
@@ -75,4 +80,10 @@ class Character:
         FTP transfer are made by the AI
         :return:
         """
-        pass
+        from moduals import FTP
+        cha:channel = FTP.connect_ftp_server(self)
+        files:str = FTP.list_accessible_files(cha)
+        FTP.quit_channel(cha)
+        cha.close()
+        answer = self.ai.generate_response(f'Here are all of the files from the FTP server : {files}')
+        print(answer)

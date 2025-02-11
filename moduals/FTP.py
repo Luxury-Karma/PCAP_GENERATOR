@@ -1,12 +1,12 @@
 from moduals.character import Character
 from moduals.ssh import get_interactive_shell, send_command_interactive
-from ssh import channel
+from paramiko import channel
 import re
 
 
 # TODO: Prepare character to have a FTP credential so we can follow them and their download. and maybe spot a wrong user
 
-def connect_ftp_server(ai:Character,server_ip:str, user_name:str= 'anonymous', password:str = '') -> channel:
+def connect_ftp_server(ai:Character) -> channel:
     """
     Connect the interactive channel to the FTP server for the AI.
     :param ai: Character used.
@@ -19,9 +19,9 @@ def connect_ftp_server(ai:Character,server_ip:str, user_name:str= 'anonymous', p
 
     win_lin:str = 'User' if ai.os != 'Linux' else 'Name'
     command:list[list[str]] = [
-        [f'ftp {server_ip}', win_lin],
-        [f'{user_name}', 'Password'],
-        [f'{password}', 'ftp'],
+        [f'ftp {ai.ftp_server}', win_lin],
+        [f'{ai.ftp_user}', 'Password'],
+        [f'{ai.ftp_pass}', 'ftp'],
     ]
 
     for e in command:
@@ -68,3 +68,5 @@ def download_file(cha:channel, file_to_download:str, local_path:str) -> None:
     send_command_interactive(cha,f'get {file_to_download} {f'{local_path}\\{file_to_download}'}', '226')
 
 
+def quit_channel(cha:channel)->None:
+    send_command_interactive(cha,'bye','221')

@@ -5,7 +5,8 @@
     "os": "Linux",
     "ssh_ip": "10.0.0.14",
     "username": "kali",
-    "password": "kali"
+    "password": "kali",
+    "ftp_server": "10.0.0.210"
   },
   "other": {
     "email": "other@gotscam.com",
@@ -13,6 +14,7 @@
     "os": "Windows Server",
     "ssh_ip": "10.0.0.210",
     "username": "Administrator",
-    "password": "P@ssword"
+    "password": "P@ssword",
+    "ftp_server": "10.0.0.210"
   }
 }
