@@ -1,10 +1,22 @@
 import re
 import time
+from multiprocessing.connection import answer_challenge
 
 from moduals.AI_communication import OllamaClient,option_detection
 from moduals import ssh, smtp
 from moduals.smtp import instantiate_email,make_data
 from paramiko import channel
+
+
+def find_chosen_file(answer:str, files:list[str]) -> str:
+    f: str = ''
+    for e in files:
+        r: str = rf'{e}'
+        catch: list[str] = re.findall(e, answer)
+        if catch:
+            f = e
+            break
+    return f
 
 
 class Character:
@@ -81,65 +93,79 @@ class Character:
         """
         pass
 
+    #region FTP
+
+    def __get_ftp_files(self, file_re:str) -> {list[str],str}:
+        from moduals import FTP
+        cha: channel = FTP.connect_ftp_server(self)
+
+        files: list[str] = re.findall(file_re, FTP.list_accessible_files(cha, self.os))
+        ai_visual_files: str = 'Here are the only option you can choose of :\n'
+        for e in files:
+            ai_visual_files += f'{e}\n'
+
+        FTP.quit_channel(cha, self.os)
+        cha.close()
+        return files, ai_visual_files
+
+    def __get_chosen_file(self, ai_visual_files:str,files:list[str]) -> str:
+        answer = self.ai.generate_response(f'Here are all of the files from the FTP server : {ai_visual_files}\n'
+                                           f'for this answer you need to reply with the name of one of these files\n')
+        print(ai_visual_files)
+        file_chosen: str = find_chosen_file(answer, files)
+        while file_chosen == '':
+            answer = self.ai.generate_response(f'No, the file you asked does not exist : {answer}.'
+                                               f'You need to answer one of these : {ai_visual_files}')
+            file_chosen = find_chosen_file(answer, files)
+            print(f"For some reason {self.ai.name} do not want to choose a proper file. Last answer: \n{answer}")
+        return file_chosen
+
+    def __download_file_ftp(self):
+        from moduals import FTP
+        file_re: str = r'\S+\.\w+'
+
+        files, ai_visual_files = self.__get_ftp_files(file_re)
+
+        file_chosen = self.__get_chosen_file(ai_visual_files,files)
+
+        cha:channel = FTP.connect_ftp_server(self)
+        FTP.download_file(cha, file_chosen, self.download_directory, self.os)
+        print(f'The file {file_chosen} was downloaded from user : {self.ai.name}')
+        FTP.quit_channel(cha, self.os)
+        cha.close()
+
+    def __get_local_files(self) -> list[str]:
+        # get local file we can upload
+        command = f'ls {self.upload_directory}' if self.os == 'Linux' else f'dir {self.upload_directory} /b'
+        _,out = ssh.send_command_to_shell(self.ssh, command)
+        return out.split('\n') if self.os == 'Linux' else [line.replace('\r', '') for line in out.split('\n')]
+
+
+
+    def __upload_file_ftp(self):
+        files = self.__get_local_files()
+
+
+
+
     def control_ftp(self):
         """
         Give option to the AI and then send the command to the machine through the SSH connection to ensure that the
         FTP transfer are made by the AI
         :return:
         """
-        from moduals import FTP
 
-        def find_chosen_file(answer:str) -> str:
-            f: str = ''
-            for e in files:
-                r: str = rf'{e}'
-                catch: list[str] = re.findall(e, answer)
-                if catch:
-                    f = e
-                    break
-            return f
+        self.__upload_file_ftp()
 
+        #todo:remove after testing of upload
+        return
+        choice : str = self.ai.generate_response('You have chosen to download or upload a file. '
+                                                'Do you want to download or upload?')
 
+        #TODO: I am lacking time right now we need to add something to do output sanitization from the AI in a more generalise form
+        if re.findall('download',choice.lower()):
+            self.__download_file_ftp()
+        if re.findall('upload',choice.lower()):
+            self.__upload_file_ftp()
 
-        # download
-
-
-        file_re:str = r'\S+\.\w+'
-
-
-        if self.os != 'Linux':
-            ssh.send_command_to_shell(self.ssh,'')
-
-        cha:channel = FTP.connect_ftp_server(self)
-
-        files:list[str] = re.findall(file_re,FTP.list_accessible_files(cha, self.os))
-        ai_visual_files: str = 'Here are the only option you can choose of :\n'
-        for e in files:
-            ai_visual_files +=  f'{e}\n'
-
-        FTP.quit_channel(cha,self.os)
-        cha.close()
-        answer = self.ai.generate_response(f'Here are all of the files from the FTP server : {ai_visual_files}\n'
-                                           f'for this answer you need to reply with the name of one of these files\n')
-        print(ai_visual_files)
-        file_chosen:str = find_chosen_file(answer)
-        while file_chosen == '':
-            answer = self.ai.generate_response(f'No, the file you asked does not exist : {answer}.'
-                                               f'You need to answer one of these : {ai_visual_files}')
-            file_chosen = find_chosen_file(answer)
-            print(f"For some reason {self.ai.name} do not want to choose a proper file. Last answer: \n{answer}")
-
-        print(f'files chosen : {answer}\nFrom AI: {self.ai.name}')
-
-
-        cha = FTP.connect_ftp_server(self)
-        FTP.download_file(cha,file_chosen,self.download_directory, self.os)
-        print(f'The file {file_chosen} was downloaded from user : {self.ai.name}')
-        FTP.quit_channel(cha, self.os)
-        cha.close()
-
-
-
-
-        # upload
-
+    #endregion
