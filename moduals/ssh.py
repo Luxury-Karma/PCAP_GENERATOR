@@ -35,7 +35,6 @@ def get_interactive_shell(shell:SSHClient) -> channel:
     """
     int_shell:channel = shell.invoke_shell()
     time.sleep(1)
-    time.sleep(1)
     return int_shell
 
 #endregion

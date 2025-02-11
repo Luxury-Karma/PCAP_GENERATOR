@@ -8,7 +8,7 @@ import json
 def main():
     information: dict = get_all_ai_info()
     character:list[Character]=setup_all_ai(information)
-    setup_next_ais_actions(character)
+    #setup_next_ais_actions(character)
 
     for e in character:
         e.control_ftp()

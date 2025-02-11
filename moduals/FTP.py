@@ -16,16 +16,14 @@ def connect_ftp_server(ai:Character) -> channel:
     :return: channel connected to the server
     """
     cha: channel = get_interactive_shell(ai.ssh)
-
-    win_lin:str = 'User' if ai.os != 'Linux' else 'Name'
     command:list[list[str]] = [
-        [f'ftp {ai.ftp_server}', win_lin],
-        [f'{ai.ftp_user}', 'Password'],
-        [f'{ai.ftp_pass}', 'ftp'],
+        [f'ftp {ai.ftp_server}', '220'],
+        [f'{ai.ftp_user}', '331'],
+        [f'{ai.ftp_pass}', '230'],
     ]
 
     for e in command:
-        send_command_interactive(cha, e[0], e[1])
+        print(send_command_interactive(cha, e[0], e[1]))
 
     return cha
 

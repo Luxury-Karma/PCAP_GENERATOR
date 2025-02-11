@@ -85,5 +85,6 @@ class Character:
         files:str = FTP.list_accessible_files(cha)
         FTP.quit_channel(cha)
         cha.close()
-        answer = self.ai.generate_response(f'Here are all of the files from the FTP server : {files}')
+        answer = self.ai.generate_response(f'Here are all of the files from the FTP server : {files}.\n'
+                                           f'for this answer you need to repply with the name of the file you will download.')
         print(answer)
