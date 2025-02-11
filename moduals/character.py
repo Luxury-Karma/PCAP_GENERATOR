@@ -1,13 +1,16 @@
 import re
+import time
 
 from moduals.AI_communication import OllamaClient,option_detection
 from moduals import ssh, smtp
 from moduals.smtp import instantiate_email,make_data
 from paramiko import channel
 
+
 class Character:
     def __init__(self,ai:OllamaClient,computer_connection:ssh.SSHClient,smtp_ip_ip:str,character_mail:str, character_os:str,
-                 character_ftp_server:str, character_ftp_user:str = 'anonymous', character_ftp_password:str = ''):
+                 character_ftp_server:str, download_directory:str,upload_directory:str
+                 ,character_ftp_user:str = 'anonymous', character_ftp_password:str = ''):
         """
         Each net user with their action and all the information we need to make them work
         :param ai: the Llama persona
@@ -25,6 +28,8 @@ class Character:
         self.ftp_server:str = character_ftp_server
         self.ftp_user: str = character_ftp_user
         self.ftp_pass: str = character_ftp_password
+        self.download_directory: str = download_directory
+        self.upload_directory: str = upload_directory
 
     def make_decision(self) :
         prompt:str = 'Rolle back to your base option given at the start of the conversation.'if  self.last_decision == '' else f'Rolle back to your base option given at the start of the conversation. your last decision was : {self.last_decision}. maybe try to vary a bit?'
@@ -83,12 +88,58 @@ class Character:
         :return:
         """
         from moduals import FTP
+
+        def find_chosen_file(answer:str) -> str:
+            f: str = ''
+            for e in files:
+                r: str = rf'{e}'
+                catch: list[str] = re.findall(e, answer)
+                if catch:
+                    f = e
+                    break
+            return f
+
+
+
+        # download
+
+
         file_re:str = r'\S+\.\w+'
 
+
+        if self.os != 'Linux':
+            ssh.send_command_to_shell(self.ssh,'')
+
         cha:channel = FTP.connect_ftp_server(self)
-        files:list[str] = re.findall(file_re,FTP.list_accessible_files(cha))
-        FTP.quit_channel(cha)
+
+        files:list[str] = re.findall(file_re,FTP.list_accessible_files(cha, self.os))
+        ai_visual_files: str = 'Here are the only option you can choose of :\n'
+        for e in files:
+            ai_visual_files +=  f'{e}\n'
+
+        FTP.quit_channel(cha,self.os)
         cha.close()
-        answer = self.ai.generate_response(f'Here are all of the files from the FTP server : {files}.\n'
-                                           f'for this answer you need to repply with the name of the file you will download.')
+        answer = self.ai.generate_response(f'Here are all of the files from the FTP server : {ai_visual_files}\n'
+                                           f'for this answer you need to reply with the name of one of these files\n')
+        print(ai_visual_files)
+        file_chosen:str = find_chosen_file(answer)
+        while file_chosen == '':
+            answer = self.ai.generate_response(f'No, the file you asked does not exist : {answer}.'
+                                               f'You need to answer one of these : {ai_visual_files}')
+            file_chosen = find_chosen_file(answer)
+            print(f"For some reason {self.ai.name} do not want to choose a proper file. Last answer: \n{answer}")
+
         print(f'files chosen : {answer}\nFrom AI: {self.ai.name}')
+
+
+        cha = FTP.connect_ftp_server(self)
+        FTP.download_file(cha,file_chosen,self.download_directory, self.os)
+        print(f'The file {file_chosen} was downloaded from user : {self.ai.name}')
+        FTP.quit_channel(cha, self.os)
+        cha.close()
+
+
+
+
+        # upload
+

@@ -22,14 +22,11 @@ def option_detection(answer: str):
 
 
 def get_basic_prompt()->str:
-    return ('You will be assisting in my automation tool. You will act as an employee of my company.'
-    'You will need to tell me what is the next thing you want to do. The thing you can do is : '
-    '\t-1: Go on a website'
-    '\t-2: Send an email'
-    '\t-3: download a file from FTP'
-    '\t-4: Try an ssh connection to a server.'
-    'Except if I tell you for something such as an email or an option you will only answer with your action. such as : \'website\' '
-    'Now here is your personality:')
+    return ('Keep in mind the personality. Now this is your pourpus. You are a tool to assist me into '
+            'automating networking traffic. When I ask a question you NEED to answer in the way I tell you. '
+            'If I ask for a name you answer a name. If I ask for a number you answer a number.'
+            'understood? good. We will start soon.'
+            'Keep in mind when I ask a question do not create something there is not in the option. Else you are breaking your rules.')
 
 
 class OllamaClient:

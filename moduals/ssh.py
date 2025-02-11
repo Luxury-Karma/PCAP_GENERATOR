@@ -62,9 +62,10 @@ def send_command_to_shell(shell: paramiko.SSHClient, command: str) -> (bool,str)
         return False, error  # Indicating failure
 
 
-def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, str]]) -> None:
+def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, str]], os:str) -> None:
     """
     Make a multiple command session with a channel. Use if you do not want to handle the channel yourself
+    :param os: os the user is on
     :param ssh: ssh connected
     :param commands: what commands to send with the planed output
     :return: Nothing
@@ -73,14 +74,15 @@ def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, 
     shell = get_interactive_shell(ssh)
 
     for cmd, wait_for in commands:
-        output = send_command_interactive(shell, cmd, wait_for, timeout=5)
+        output = send_command_interactive(shell, cmd, wait_for, os)
         print(f"Command: {cmd}\nResponse: {output}\n")
     shell.close()
 
 
-def send_command_interactive(int_shell: channel, command: str, wait_for: str, timeout: int = 5) -> str:
+def send_command_interactive(int_shell: channel, command: str, wait_for: str, os:str, timeout: int = 5) -> str:
     """
     Send a single command to a channel.
+    :param os: os the user is on
     :param int_shell: connected channel
     :param command: what command to send
     :param wait_for: supposed output
@@ -88,17 +90,20 @@ def send_command_interactive(int_shell: channel, command: str, wait_for: str, ti
     :return: output (Str)
     """
 
-    int_shell.send(command + '\n')
+    recv_input = 1024 if os == 'Linux' else 4096
+    sleep_time:float = 0.2 if os == 'Linux' else 0.5
+    end_command: str = '\n' if os == 'Linux' else '\r\n'
+    int_shell.send(command + end_command)
     output = ""
     start_time = time.time()
     while time.time() - start_time < timeout:
         if int_shell.recv_ready():
-            recv = int_shell.recv(1024).decode("utf-8")
+            recv = int_shell.recv(recv_input).decode("utf-8",errors='ignore')
             output += recv
             # Check if the expected response is in the output
             if wait_for in output:
                 break
-        time.sleep(0.2)
+        time.sleep(sleep_time)
     return output
 
 #endregion

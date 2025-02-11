@@ -1,20 +1,27 @@
 {
-  "kali": {
+
+    "kali": {
     "email": "kali@gotscam.com",
     "personality": "You are Kali. Kali is a highly energetic 18 years old who love difficulty but is also super social.",
     "os": "Linux",
     "ssh_ip": "10.0.0.14",
     "username": "kali",
     "password": "kali",
-    "ftp_server": "10.0.0.210"
+    "ftp_server": "10.0.0.210",
+    "upload_directory": "/home/kali/Pictures/",
+    "download_directory": "/home/kali/Downloads/"
   },
-  "other": {
+   "other": {
     "email": "other@gotscam.com",
-    "personality": "You are other. You are the most side character that ever existed in any literature ever. You do your job and answer to people.",
+    "personality": "You are Bob. Bob is a 30 year old HRA who love simplicity and feet. You are not really social but you are good at your job.",
     "os": "Windows Server",
     "ssh_ip": "10.0.0.210",
     "username": "Administrator",
     "password": "P@ssword",
-    "ftp_server": "10.0.0.210"
+    "ftp_server": "10.0.0.210",
+    "upload_directory": "C:\\share",
+    "download_directory": "C:\\download"
   }
+
+
 }

@@ -21,23 +21,22 @@ def connect_ftp_server(ai:Character) -> channel:
         [f'{ai.ftp_user}', '331'],
         [f'{ai.ftp_pass}', '230'],
     ]
-
     for e in command:
-        send_command_interactive(cha, e[0], e[1])
+        print(send_command_interactive(cha, e[0], e[1], ai.os))
 
     return cha
 
 
-def list_accessible_files(cha:channel) -> str:
+def list_accessible_files(cha:channel, os:str) -> str:
     """
     get all the accessible files from the FTP server
     :param cha: interactive Channel
     :return: list of the server's file
     """
-    return send_command_interactive(cha,'ls','226')
+    return send_command_interactive(cha,'ls','226', os)
 
 
-def upload_file(cha:channel, file_to_upload:str) -> None:
+def upload_file(cha:channel, file_to_upload:str, os:str) -> None:
     """
     Send a local file to the FTP server
     :param cha: interactive channel
@@ -52,10 +51,10 @@ def upload_file(cha:channel, file_to_upload:str) -> None:
         [f'put {file_name}', '226']
     ]
     for e in commands:
-        send_command_interactive(cha,e[0],e[1])
+        send_command_interactive(cha,e[0],e[1], os)
 
 
-def download_file(cha:channel, file_to_download:str, local_path:str) -> None:
+def download_file(cha:channel, file_to_download:str, local_path:str, os:str) -> None:
     """
     Get a file from the FTP server
     :param cha: interactive channel
@@ -63,8 +62,9 @@ def download_file(cha:channel, file_to_download:str, local_path:str) -> None:
     :param local_path: where to put the file
     :return: none
     """
-    send_command_interactive(cha,f'get {file_to_download} {f'{local_path}\\{file_to_download}'}', '226')
+    send_command_interactive(cha,f'binary','200',os)
+    send_command_interactive(cha,f'get {file_to_download} {f'{local_path}\\{file_to_download}'}', '226', os)
 
 
-def quit_channel(cha:channel)->None:
-    send_command_interactive(cha,'bye','221')
+def quit_channel(cha:channel, os:str)->None:
+    send_command_interactive(cha,'bye','221', os)

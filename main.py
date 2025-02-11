@@ -37,7 +37,8 @@ def setup_all_ai(all_ai_info:dict):
         personality:str = get_basic_prompt()
         personality+=value['personality']
         s,_ = ssh.connect_to_ssh_server(value['ssh_ip'],value['username'],value['password'])
-        all_character.append(Character(OllamaClient(personality,key),s,'10.0.0.14',value['email'],value['os'],value['ftp_server']))
+        all_character.append(Character(OllamaClient(personality,key),s,'10.0.0.14',value['email'],value['os'],
+                                       value['ftp_server'],value['download_directory'], value['upload_directory']))
     return all_character
 
 

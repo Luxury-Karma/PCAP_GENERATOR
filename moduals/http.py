@@ -21,7 +21,7 @@ def open_website(domain_name:str, character:Character ) -> None or channel:
     # TODO : We need to find a bether solution than this to open web broswer on the forein host.
     # What we could do is give them all a bash script that we can control from outside but launch their basic web broswer and go where we tell it.
     shell:channel = ssh.get_interactive_shell(shell=character.ssh)
-    send_command_interactive(shell,f'firefox --headless {domain_name}','*** You are running in headless mode.')  # linux
+    send_command_interactive(shell,f'firefox --headless {domain_name}','*** You are running in headless mode.', os)  # linux
     return shell
 
 
