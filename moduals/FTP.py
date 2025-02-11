@@ -23,7 +23,7 @@ def connect_ftp_server(ai:Character) -> channel:
     ]
 
     for e in command:
-        print(send_command_interactive(cha, e[0], e[1]))
+        send_command_interactive(cha, e[0], e[1])
 
     return cha
 
