@@ -55,7 +55,7 @@ class Character:
             ("QUIT", "221")
         ]
 
-        ssh.send_multi_shell_command(self.ssh,all_commands)
+        ssh.send_multi_shell_command(self.ssh,all_commands, self.os)
 
 
         return
