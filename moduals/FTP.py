@@ -47,6 +47,7 @@ def upload_file(cha:channel, file_to_upload:str, os:str) -> None:
     directory:str = re.match(reg_detection,file_to_upload).groups()[0]
     file_name:str = file_to_upload.strip(directory)
     commands:list[list[str]] = [
+        ['binary','200'],
         [f'lcd {directory}', 'Local directory' ],
         [f'put {file_name}', '226']
     ]

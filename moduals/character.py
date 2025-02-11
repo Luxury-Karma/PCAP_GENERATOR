@@ -143,7 +143,28 @@ class Character:
 
 
     def __upload_file_ftp(self):
-        files = self.__get_local_files()
+        from moduals import FTP
+
+        files:list[str] = self.__get_local_files()
+        answer:str = self.ai.generate_response(f'Here are all the files you can choose from : {files}.What file do you whant to send to the FTP server?')
+        choice: str = ''
+
+        # I miss do while 🥲
+        for e in files:
+            if re.findall(e,answer):
+                choice = e
+                break
+        while choice == '':
+            print(f'{self.ai.name} is not trying :(')
+            answer = self.ai.generate_response(f'I told you those : {files} are the only one you can choose. You need to choose one of those. Its an order.')
+            for e in files:
+                if re.findall(e, answer):
+                    choice = e
+                    break
+        print(f'choice: {choice}')
+        cha:channel = ssh.get_interactive_shell(self.ssh)
+        FTP.upload_file(cha,f'{self.upload_directory}\\{choice}',self.os)
+
 
 
 
