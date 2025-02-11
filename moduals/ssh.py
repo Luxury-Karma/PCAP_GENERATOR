@@ -5,6 +5,7 @@ import paramiko
 from paramiko.client import SSHClient
 from paramiko import channel
 
+#region connections
 
 def connect_to_ssh_server(ssh_server_ip:str,user_name:str,password:str,port:int=22,timeout:int=3)->[SSHClient,bool]:
     ssh:SSHClient = paramiko.SSHClient()
@@ -17,7 +18,15 @@ def connect_to_ssh_server(ssh_server_ip:str,user_name:str,password:str,port:int=
         print(f'could not connect to ssh {e}')
         return ssh, False
 
+def get_interactive_shell(shell:SSHClient):
+    int_shell:channel = shell.invoke_shell()
+    time.sleep(1)
+    time.sleep(1)
+    return int_shell
 
+#endregion
+
+#region Shell Control
 def send_command_to_shell(shell: paramiko.SSHClient, command: str) -> (bool,str):
     stdin, stdout, stderr = shell.exec_command(command)
 
@@ -56,11 +65,7 @@ def send_command_interactive(int_shell: channel, command: str, wait_for: str, ti
         time.sleep(0.2)
     return output
 
-def get_interactive_shell(shell:SSHClient):
-    int_shell:channel = shell.invoke_shell()
-    time.sleep(1)
-    time.sleep(1)
-    return int_shell
+#endregion
 
 
 #TODO: Add the bruteforce thing here. We could also use Hydra command line from a kali machine that we connect through SSH?

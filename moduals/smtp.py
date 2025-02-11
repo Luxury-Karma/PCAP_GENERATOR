@@ -171,7 +171,7 @@ def instantiate_email(server_ip:str, email_from:str,email_to:str, email_text_inf
     message:str = email_text_information
     subject:str = email_title
 
-    asyncio.run(__send_email(server_ip=server_ip,sender=sender,recipient=receiver,subject=subject,message=message, files_to_join=    file_to_send_path
+    asyncio.run(__send_email(server_ip=server_ip,sender=sender,recipient=receiver,subject=subject,message=message, files_to_join=[file_to_send_path]
 ))
     print("all asked email where sent")
 

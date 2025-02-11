@@ -1,5 +1,7 @@
 from ftplib import FTP
 
+# TODO: refactor for AI and SSH usage.
+
 def connect_to_server(server_ip:str, username:str='',password:str='') -> FTP:
     ftp = FTP(host=server_ip)
     ftp.login(username,password)
