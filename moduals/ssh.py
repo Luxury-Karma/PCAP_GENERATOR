@@ -8,6 +8,15 @@ from paramiko import channel
 #region connections
 
 def connect_to_ssh_server(ssh_server_ip:str,user_name:str,password:str,port:int=22,timeout:int=3)->[SSHClient,bool]:
+    """
+    Connect the client to a SSH shell
+    :param ssh_server_ip: SSH server IP
+    :param user_name: SSH user name
+    :param password: SSH user password
+    :param port: port for ssh base : 22
+    :param timeout: how long we wait for a connection base : 3 seconds
+    :return: SSH connection (SSHClient) and if connection worked (bool)
+    """
     ssh:SSHClient = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
@@ -18,7 +27,12 @@ def connect_to_ssh_server(ssh_server_ip:str,user_name:str,password:str,port:int=
         print(f'could not connect to ssh {e}')
         return ssh, False
 
-def get_interactive_shell(shell:SSHClient):
+def get_interactive_shell(shell:SSHClient) -> channel:
+    """
+    Generate a channel to communicate for longer communications
+    :param shell: ssh connection
+    :return: connected channel
+    """
     int_shell:channel = shell.invoke_shell()
     time.sleep(1)
     time.sleep(1)
@@ -28,6 +42,13 @@ def get_interactive_shell(shell:SSHClient):
 
 #region Shell Control
 def send_command_to_shell(shell: paramiko.SSHClient, command: str) -> (bool,str):
+    """
+    Send a single command to the connected SSH
+    :param shell: SSH connected
+    :param command: what to send
+    :return: if command worked and the output
+    """
+
     stdin, stdout, stderr = shell.exec_command(command)
 
     exit_status = stdout.channel.recv_exit_status()  # Get exit status
@@ -42,7 +63,14 @@ def send_command_to_shell(shell: paramiko.SSHClient, command: str) -> (bool,str)
         return False, error  # Indicating failure
 
 
-def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, str]]):
+def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, str]]) -> None:
+    """
+    Make a multiple command session with a channel. Use if you do not want to handle the channel yourself
+    :param ssh: ssh connected
+    :param commands: what commands to send with the planed output
+    :return: Nothing
+    """
+
     shell = get_interactive_shell(ssh)
 
     for cmd, wait_for in commands:
@@ -52,6 +80,15 @@ def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, 
 
 
 def send_command_interactive(int_shell: channel, command: str, wait_for: str, timeout: int = 5) -> str:
+    """
+    Send a single command to a channel.
+    :param int_shell: connected channel
+    :param command: what command to send
+    :param wait_for: supposed output
+    :param timeout: how long we wait
+    :return: output (Str)
+    """
+
     int_shell.send(command + '\n')
     output = ""
     start_time = time.time()
