@@ -4,6 +4,9 @@ from moduals import ssh
 from moduals.ssh import send_command_interactive
 from moduals.character import Character
 
+#TODO we will add a bash or powershell script on each device to solve the problem of youtube video and thing like that.
+# This will be the most time effective way of solving this problem
+
 def curl_website(domain_name:str, ssh_connection:SSHClient) -> str:
     _, curl = ssh.send_command_to_shell(ssh_connection,f'curl {domain_name}')
     return curl
