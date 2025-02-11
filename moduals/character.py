@@ -1,3 +1,5 @@
+import re
+
 from moduals.AI_communication import OllamaClient,option_detection
 from moduals import ssh, smtp
 from moduals.smtp import instantiate_email,make_data
@@ -81,10 +83,12 @@ class Character:
         :return:
         """
         from moduals import FTP
+        file_re:str = r'\S+\.\w+'
+
         cha:channel = FTP.connect_ftp_server(self)
-        files:str = FTP.list_accessible_files(cha)
+        files:list[str] = re.findall(file_re,FTP.list_accessible_files(cha))
         FTP.quit_channel(cha)
         cha.close()
         answer = self.ai.generate_response(f'Here are all of the files from the FTP server : {files}.\n'
                                            f'for this answer you need to repply with the name of the file you will download.')
-        print(answer)
+        print(f'files chosen : {answer}\nFrom AI: {self.ai.name}')
