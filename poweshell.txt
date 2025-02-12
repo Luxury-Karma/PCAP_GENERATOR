@@ -1,0 +1,38 @@
+@echo off
+setlocal enabledelayedexpansion
+
+rem --- Configuration: change these values as needed ---
+set SMTP_SERVER=smtp.example.com
+set SMTP_PORT=25
+set HELO_DOMAIN=example.com
+set SENDER=<sender@example.com>
+set RECIPIENT=<recipient@example.com>
+set SUBJECT=Test Email from Batch File
+set BODY=This is a test email sent via Telnet using a batch file.
+
+rem --- Create a temporary file for the Telnet commands ---
+set TEMPFILE=%TEMP%\telnet_cmds.txt
+
+(
+    echo open %SMTP_SERVER% %SMTP_PORT%
+    echo HELO %HELO_DOMAIN%
+    echo MAIL FROM: %SENDER%
+    echo RCPT TO: %RECIPIENT%
+    echo DATA
+    echo Subject: %SUBJECT%
+    echo.
+    echo %BODY%
+    echo .
+    echo QUIT
+) > "%TEMPFILE%"
+
+rem --- (Optional) Display the generated command file for verification ---
+type "%TEMPFILE%"
+
+rem --- Run Telnet and feed it the commands from the temporary file ---
+telnet < "%TEMPFILE%"
+
+rem --- Clean up ---
+del "%TEMPFILE%"
+endlocal
+pause

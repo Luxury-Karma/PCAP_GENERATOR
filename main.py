@@ -1,3 +1,5 @@
+import os
+
 from moduals import ssh,http
 from moduals.AI_communication import OllamaClient,get_basic_prompt,option_detection
 from moduals.character import Character
@@ -6,13 +8,14 @@ from paramiko import channel
 import json
 
 def main():
+
     information: dict = get_all_ai_info()
     character:list[Character]=setup_all_ai(information)
     #setup_next_ais_actions(character)
 
     for e in character:
-        e.control_ftp()
-
+        #e.make_decision()
+        e.control_email()
     print('over')
 
     #email:list[str] = ["kali","other"]

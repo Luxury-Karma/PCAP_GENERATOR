@@ -1,3 +1,4 @@
+import json
 import re
 import time
 from multiprocessing.connection import answer_challenge
@@ -48,18 +49,73 @@ class Character:
         self.upload_directory: str = upload_directory
 
     def make_decision(self) :
-        prompt:str = 'Rolle back to your base option given at the start of the conversation.'if  self.last_decision == '' else f'Rolle back to your base option given at the start of the conversation. your last decision was : {self.last_decision}. maybe try to vary a bit?'
+        prompt:str = ('We get a new decision. Right now your options are : '
+                      '1 - go on a website\n'
+                      '2 - send a email\n'
+                      '3 - connect to an other device with ssh\n'
+                      '4 - download or upload a file with FTP\n'
+                      'You need to choose the option and tell me the full name for detection.\n'
+                      f'also for your knowledge your last decision was : {self.last_decision}. Try to be imaginative !')
         decision =  option_detection(self.ai.generate_response(prompt))
-        self.last_decision=decision
+        self.last_decision = decision
+        if decision=='website':
+            self.control_website()
+        elif decision=='email':
+            self.control_email()
+        elif decision=='ftp':
+            self.control_ftp()
+        elif decision=='ssh':
+            self.control_ssh()
+        else:
+            print("didn't choose anything")
 
 
-    def control_email(self,destination:str, message:str, subject:str):
+
+    def control_email(self):
+        #TODO: Temporary solution for Windows, The telnet is kinda broken for automation so we will make a SSH connection from the host to the linux server then the linux server make the telnet move. That should solve the problem
         """
         Give option to the AI and then send the command to the machine through the SSH connection
         to ensure that the email was sent.
         """
+
+        email_list: dict={}
+        with open('./Ai_information/all_email.json','r') as em:
+            email_list.update(json.load(em))
+
+        answer:str = self.ai.generate_response(f'You have choose to send en email. here is the list of user : {email_list}.'
+                                  f'You need to choose one of them. Use the name on the left. Do not send an email to your self you are :{self.ai.name}.')
+
+        destination:str = ''
+
+        for key,value in email_list.items():
+            if re.findall(key.lower(),answer.lower())or re.findall(answer.lower(),value.lower()):
+                destination = value
+                break
+        message:str = self.ai.generate_response(f'You are sending an email to {destination}. what do you want to write in the email as the message? Do a rolleplay so return only the message.')
+        subject:str = self.ai.generate_response(f'You are sending this email {message} to {destination}. You need to find a subject. The subject should be a short phrase of a couple words maximum. You are rollplaying so just tell me exactly what the subject is.')
+
+        print(answer)
+
         email_body: str = smtp.make_data(self.email,destination,subject, message, [])  # TODO: Ensure the body is properly formatted with smtp.py functions
         email_content:str = f'From: {self.email}\r\nTo: {destination}\r\nSubject: {subject}\r\n\r\n{email_body}\r\n.'
+
+        if self.os != 'Linux':
+            all_commands: list[tuple[str, str]] = [
+                (f'ssh kali@{self.smtp_ip}','password'),
+                #(f'yes','password'),
+                (f'kali','Last login'),
+                (f'telnet {self.smtp_ip} 25', "220"),
+                ("EHLO localhost", "250"),
+                (f'MAIL FROM: {self.email}', "250"),
+                (f'RCPT TO:{destination}', "250"),
+                ("DATA", "354"),
+                (email_content, "250"),
+                ("QUIT", "221")
+            ]
+            ssh.send_multi_shell_command(self.ssh, all_commands, self.os, 2, 'Linux')
+            self.log_user_action('SENT MAIL', 'TEMP',
+                                 f'User({self.ai.name} sent an email with title {subject} to user {destination} with the SMTP server at address : {self.smtp_ip}')
+            return
 
         all_commands:list[tuple[str, str]] = [
             (f'telnet {self.smtp_ip} 25', "220"),
@@ -72,6 +128,7 @@ class Character:
         ]
 
         ssh.send_multi_shell_command(self.ssh,all_commands, self.os)
+        self.log_user_action('SENT MAIL','TEMP',f'User({self.ai.name} sent an email with title {subject} to user {destination} with the SMTP server at address : {self.smtp_ip}')
 
 
         return
