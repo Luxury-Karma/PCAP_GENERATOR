@@ -32,7 +32,7 @@
 ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░   ░▒▓█▓▒░    ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░
 ░▒▓████████▓▒░░▒▓██████▓▒░ ░▒▓█▓▒░░▒▓█▓▒░ ░▒▓██████▓▒░ ░▒▓█▓▒░░▒▓█▓▒░   ░▒▓█▓▒░    ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░
 
-                                                                                                                                                                 
+
 
 """
 
@@ -46,15 +46,10 @@ def main():
 
     information: dict = get_all_ai_info()
     character:list[Character]=setup_all_ai(information)
-    #setup_next_ais_actions(character)
-    for i in range(10):
-        for e in character:
-            e.make_decision()
+    for e in character:
+        e.control_email()
     print('over')
 
-    #email:list[str] = ["kali","other"]
-    #domain_name:str = "@gotscam.com"
-    #make_readable_smtp.instantiate_email(server_ip="10.0.0.14",email_list=email,amount_of_email=10,domain=domain_name,ai_communication=ai,files_directory="/home/luxurykarma/Pictures/test")
 
 def setup_next_ais_actions(characters:list[Character]):
     for e in characters:

@@ -99,23 +99,6 @@ class Character:
         email_body: str = smtp.make_data(self.email,destination,subject, message, [])  # TODO: Ensure the body is properly formatted with smtp.py functions
         email_content:str = f'From: {self.email}\r\nTo: {destination}\r\nSubject: {subject}\r\n\r\n{email_body}\r\n.'
 
-        if self.os != 'Linux':
-            all_commands: list[tuple[str, str]] = [
-                (f'ssh kali@{self.smtp_ip}','password'),
-                #(f'yes','password'),
-                (f'kali','Last login'),
-                (f'telnet {self.smtp_ip} 25', "220"),
-                ("EHLO localhost", "250"),
-                (f'MAIL FROM: {self.email}', "250"),
-                (f'RCPT TO:{destination}', "250"),
-                ("DATA", "354"),
-                (email_content, "250"),
-                ("QUIT", "221")
-            ]
-            ssh.send_multi_shell_command(self.ssh, all_commands, self.os, 2, 'Linux')
-            self.log_user_action('SENT MAIL', 'TEMP',
-                                 f'User({self.ai.name} sent an email with title {subject} to user {destination} with the SMTP server at address : {self.smtp_ip}')
-            return
 
         all_commands:list[tuple[str, str]] = [
             (f'telnet {self.smtp_ip} 25', "220"),

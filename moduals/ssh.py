@@ -62,7 +62,7 @@ def send_command_to_shell(shell: paramiko.SSHClient, command: str) -> (bool,str)
         return False, error  # Indicating failure
 
 
-def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, str]], os:str, change_os_position:int = None, changed_os:str = None) -> None:
+def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, str]], os:str) -> None:
     """
     Make a multiple command session with a channel. Use if you do not want to handle the channel yourself
     :param changed_os: to what OS do we change
@@ -74,13 +74,9 @@ def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, 
     """
 
     shell = get_interactive_shell(ssh)
-    depth:int = 0
     for cmd, wait_for in commands:
-        if depth == change_os_position:
-            os = changed_os
         output = send_command_interactive(shell, cmd, wait_for, os)
         print(f"Command: {cmd}\nResponse: {output}\n")
-        depth+=1
     shell.close()
 
 
