@@ -21,6 +21,17 @@
     "ftp_server": "10.0.0.210",
     "upload_directory": "C:\\share",
     "download_directory": "C:\\download"
+  },
+  "rob": {
+    "email": "rob@gotscam.com",
+    "personality": "You are Rob.Rob is the best IT the company have. He is hardworking and really good at his job.",
+    "os": "Windows",
+    "ssh_ip": "10.0.0.251",
+    "username": "user",
+    "password": "user",
+    "ftp_server": "10.0.0.210",
+    "upload_directory": "C:\\share",
+    "download_directory": "C:\\download"
   }
 
 
