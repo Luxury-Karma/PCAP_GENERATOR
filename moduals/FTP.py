@@ -22,7 +22,7 @@ def connect_ftp_server(ai:Character) -> channel:
         [f'{ai.ftp_pass}', '230'],
     ]
     for e in command:
-        print(send_command_interactive(cha, e[0], e[1], ai.os))
+        send_command_interactive(cha, e[0], e[1], ai.os)
 
     return cha
 
@@ -36,28 +36,28 @@ def list_accessible_files(cha:channel, os:str) -> str:
     return send_command_interactive(cha,'ls','226', os)
 
 
-def upload_file(cha:channel, file_to_upload:str, os:str) -> None:
+def upload_file(cha:channel, file_directory:str, file_name:str, os:str) -> None:
     """
     Send a local file to the FTP server
+    :param os: What are we running the command into
+    :param file_name: the name of the uploaded file
+    :param file_directory: Where is the file
     :param cha: interactive channel
-    :param file_to_upload: full path of the file to upload
     :return: Nothing
     """
-    reg_detection:str = r'^(.*[\\/])'
-    directory:str = re.match(reg_detection,file_to_upload).groups()[0]
-    file_name:str = file_to_upload.strip(directory)
     commands:list[list[str]] = [
         ['binary','200'],
-        [f'lcd {directory}', 'Local directory' ],
-        [f'put {file_name}', '226']
+        [f'lcd "{file_directory}"', 'Local directory' ],
+        [f'put "{file_name}"', '226']
     ]
     for e in commands:
-        send_command_interactive(cha,e[0],e[1], os)
+        print(send_command_interactive(cha,e[0],e[1], os))
 
 
 def download_file(cha:channel, file_to_download:str, local_path:str, os:str) -> None:
     """
     Get a file from the FTP server
+    :param os: Os of the system user
     :param cha: interactive channel
     :param file_to_download: file name to download
     :param local_path: where to put the file

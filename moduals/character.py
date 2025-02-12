@@ -159,12 +159,14 @@ class Character:
         while choice == '':
             answer = self.ai.generate_response(f'I told you those : {files} are the only one you can choose. You need to choose one of those. Its an order.')
             for e in files:
-                if re.findall(e, answer):
+                if re.findall(rf'\b{re.escape(e)}\b', answer):  # Use re.escape to handle special characters
                     choice = e
                     break
         print(f'choice: {choice}')
-        cha:channel = ssh.get_interactive_shell(self.ssh)
-        FTP.upload_file(cha,f'{self.upload_directory}\\{choice}',self.os)
+        cha:channel =  FTP.connect_ftp_server(self)
+        print(f'{self.os}')
+        FTP.upload_file(cha,self.upload_directory,choice,self.os)
+        print('upload successful')
 
 
 
