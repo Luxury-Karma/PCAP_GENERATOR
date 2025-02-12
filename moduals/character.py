@@ -1,11 +1,15 @@
 import re
 import time
 from multiprocessing.connection import answer_challenge
+from secrets import choice
 
 from moduals.AI_communication import OllamaClient,option_detection
 from moduals import ssh, smtp
 from moduals.smtp import instantiate_email,make_data
 from paramiko import channel
+import datetime
+import csv
+import os
 
 
 def find_chosen_file(answer:str, files:list[str]) -> str:
@@ -108,6 +112,7 @@ class Character:
         cha.close()
         return files, ai_visual_files
 
+
     def __get_chosen_file(self, ai_visual_files:str,files:list[str]) -> str:
         answer = self.ai.generate_response(f'Here are all of the files from the FTP server : {ai_visual_files}\n'
                                            f'for this answer you need to reply with the name of one of these files\n')
@@ -120,19 +125,22 @@ class Character:
             print(f"For some reason {self.ai.name} do not want to choose a proper file. Last answer: \n{answer}")
         return file_chosen
 
-    def __download_file_ftp(self):
+
+    def __download_file_ftp(self) -> str:
         from moduals import FTP
         file_re: str = r'\S+\.\w+'
 
         files, ai_visual_files = self.__get_ftp_files(file_re)
 
-        file_chosen = self.__get_chosen_file(ai_visual_files,files)
+        choice = self.__get_chosen_file(ai_visual_files,files)
 
         cha:channel = FTP.connect_ftp_server(self)
-        FTP.download_file(cha, file_chosen, self.download_directory, self.os)
-        print(f'The file {file_chosen} was downloaded from user : {self.ai.name}')
+        FTP.download_file(cha, choice, self.download_directory, self.os)
+        print(f'The file {choice} was downloaded from user : {self.ai.name}')
         FTP.quit_channel(cha, self.os)
         cha.close()
+        return choice
+
 
     def __get_local_files(self) -> list[str]:
         # get local file we can upload
@@ -141,8 +149,7 @@ class Character:
         return out.split('\n') if self.os == 'Linux' else [line.replace('\r', '') for line in out.split('\n')]
 
 
-
-    def __upload_file_ftp(self):
+    def __upload_file_ftp(self) -> str:
         from moduals import FTP
 
         files:list[str] = self.__get_local_files()
@@ -162,14 +169,11 @@ class Character:
                 if re.findall(rf'\b{re.escape(e)}\b', answer):  # Use re.escape to handle special characters
                     choice = e
                     break
-        print(f'choice: {choice}')
         cha:channel =  FTP.connect_ftp_server(self)
-        print(f'{self.os}')
         FTP.upload_file(cha,self.upload_directory,choice,self.os)
-        print('upload successful')
-
-
-
+        FTP.quit_channel(cha,self.os)
+        cha.close()
+        return choice
 
 
     def control_ftp(self):
@@ -178,18 +182,35 @@ class Character:
         FTP transfer are made by the AI
         :return:
         """
+        answer:str = self.ai.generate_response('You have chosen to transfer FTP file ( either download or upload ). Do you wish to download'
+                                  'or upload? those two are the only choice you can choose.')
 
-        self.__upload_file_ftp()
+        # TODO: add output validation
+        answer = answer.lower()
+        print(f'{answer}')
 
-        #todo:remove after testing of upload
-        return
-        choice : str = self.ai.generate_response('You have chosen to download or upload a file. '
-                                                'Do you want to download or upload?')
+        file: str = self.__upload_file_ftp() if re.findall('upload',answer) else self.__download_file_ftp()
+        self.log_user_action('UPLOAD FTP' if re.findall('upload',answer) else 'DOWNLOAD FTP', 'TEMP', f'The user({self.ai.name}) uploaded the file {file}')
 
-        #TODO: I am lacking time right now we need to add something to do output sanitization from the AI in a more generalise form
-        if re.findall('download',choice.lower()):
-            self.__download_file_ftp()
-        if re.findall('upload',choice.lower()):
-            self.__upload_file_ftp()
+    #endregion
+
+    #region logs
+
+    def log_user_action(self,action_title:str, status:str, details:str):
+        log_path: str = './log/log.csv'
+        with open(log_path, mode='a', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+            if not os.path.exists(log_path):
+                writer.writerow("Timestamp", "AI Name", "Action", "Status", "Details")
+            writer.writerow([
+                datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                self.ai.name,
+                action_title,
+                status,
+                details
+            ])
+
+
+        pass
 
     #endregion
