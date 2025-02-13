@@ -1,13 +1,15 @@
-#TODO : Make random connection to SSH some making as if they where bruteforcing the connection. If its a okay one do a couple random commande to just make pcap.
+# TODO : Make random connection to SSH some making as if they where bruteforcing the connection. If its a okay one do a couple random commande to just make pcap.
 import time
 
 import paramiko
 from paramiko.client import SSHClient
 from paramiko import channel
 
-#region connections
 
-def connect_to_ssh_server(ssh_server_ip:str,user_name:str,password:str,port:int=22,timeout:int=3)->[SSHClient,bool]:
+# region connections
+
+def connect_to_ssh_server(ssh_server_ip: str, user_name: str, password: str, port: int = 22, timeout: int = 3) -> [
+    SSHClient, bool]:
     """
     Connect the client to a SSH shell
     :param ssh_server_ip: SSH server IP
@@ -17,30 +19,33 @@ def connect_to_ssh_server(ssh_server_ip:str,user_name:str,password:str,port:int=
     :param timeout: how long we wait for a connection base : 3 seconds
     :return: SSH connection (SSHClient) and if connection worked (bool)
     """
-    ssh:SSHClient = paramiko.SSHClient()
+    ssh: SSHClient = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        print(f"trying to connect at : {ssh_server_ip}, with the user and password : {user_name}/{password} on port {port}")
-        ssh.connect(hostname=ssh_server_ip,port=port,username=user_name,password=password,timeout=timeout)
-        return ssh,True
+        print(
+            f"trying to connect at : {ssh_server_ip}, with the user and password : {user_name}/{password} on port {port}")
+        ssh.connect(hostname=ssh_server_ip, port=port, username=user_name, password=password, timeout=timeout)
+        return ssh, True
     except  Exception as e:
         print(f'could not connect to ssh {e}')
         return ssh, False
 
-def get_interactive_shell(shell:SSHClient) -> channel:
+
+def get_interactive_shell(shell: SSHClient) -> channel:
     """
     Generate a channel to communicate for longer communications
     :param shell: ssh connection
     :return: connected channel
     """
-    int_shell:channel = shell.invoke_shell()
+    int_shell: channel = shell.invoke_shell()
     time.sleep(1)
     return int_shell
 
-#endregion
 
-#region Shell Control
-def send_command_to_shell(shell: paramiko.SSHClient, command: str) -> (bool,str):
+# endregion
+
+# region Shell Control
+def send_command_to_shell(shell: paramiko.SSHClient, command: str) -> (bool, str):
     """
     Send a single command to the connected SSH
     :param shell: SSH connected
@@ -62,7 +67,8 @@ def send_command_to_shell(shell: paramiko.SSHClient, command: str) -> (bool,str)
         return False, error  # Indicating failure
 
 
-def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, str]], os:str, change_os_position:int = None, changed_os:str = None) -> None:
+def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, str]], os: str,
+                             change_os_position: int = None, changed_os: str = None) -> None:
     """
     Make a multiple command session with a channel. Use if you do not want to handle the channel yourself
     :param changed_os: to what OS do we change
@@ -74,17 +80,17 @@ def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, 
     """
 
     shell = get_interactive_shell(ssh)
-    depth:int = 0
+    depth: int = 0
     for cmd, wait_for in commands:
         if depth == change_os_position:
             os = changed_os
         output = send_command_interactive(shell, cmd, wait_for, os)
         print(f"Command: {cmd}\nResponse: {output}\n")
-        depth+=1
+        depth += 1
     shell.close()
 
 
-def send_command_interactive(int_shell: channel, command: str, wait_for: str, os:str, timeout: int = 5) -> str:
+def send_command_interactive(int_shell: channel, command: str, wait_for: str, os: str, timeout: int = 5) -> str:
     """
     Send a single command to a channel.
     :param os: os the user is on
@@ -96,14 +102,14 @@ def send_command_interactive(int_shell: channel, command: str, wait_for: str, os
     """
 
     recv_input = 1024 if os == 'Linux' else 4096
-    sleep_time:float = 0.2 if os == 'Linux' else 0.5
+    sleep_time: float = 0.2 if os == 'Linux' else 0.5
     end_command: str = '\n' if os == 'Linux' else '\r\n'
     int_shell.send(command + end_command)
     output = ""
     start_time = time.time()
     while time.time() - start_time < timeout:
         if int_shell.recv_ready():
-            recv = int_shell.recv(recv_input).decode("utf-8",errors='ignore')
+            recv = int_shell.recv(recv_input).decode("utf-8", errors='ignore')
             output += recv
             # Check if the expected response is in the output
             if wait_for in output:
@@ -111,8 +117,7 @@ def send_command_interactive(int_shell: channel, command: str, wait_for: str, os
         time.sleep(sleep_time)
     return output
 
-#endregion
+# endregion
 
 
-#TODO: Add the bruteforce thing here. We could also use Hydra command line from a kali machine that we connect through SSH?
-
+# TODO: Add the bruteforce thing here. We could also use Hydra command line from a kali machine that we connect through SSH?

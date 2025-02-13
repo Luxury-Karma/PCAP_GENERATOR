@@ -175,7 +175,8 @@ class Character:
         """
         pass
 
-    #endregion
+    # endregion
+
     # region FTP
 
     def connect_ftp_server(self) -> channel:

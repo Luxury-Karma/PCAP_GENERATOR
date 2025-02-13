@@ -37,7 +37,7 @@
 """
 
 
-from moduals import ssh,http
+from moduals import ssh
 from moduals.AI_communication import OllamaClient,get_basic_prompt,option_detection
 from moduals.character import Character
 import json
