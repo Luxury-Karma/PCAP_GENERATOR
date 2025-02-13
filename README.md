@@ -1,18 +1,24 @@
-# training_pcap_maker
- a helper to make basic pcap to test a multitude of aptitude
- 
- for it to work you will need 
- - a postfix server runing in the lan. 
-    - In the postfix server we need at least one account but for realism we should have more than one 
-- a ollama server running with llama3 model to make the email information
-- a directory with files for the joint pieces the email will be allowed to select from. 
+# Training_pcap_maker
+A noise maker for pcap based on Ollama.
 
-- a browser allowing search from the script
-- multiple vm or devices on the lan to make noise. (minimum of one more than your host) 
+# How does it work ? 
+The script connect to the VM by SSH. The scripts then use Ollama client with an Ai model run on it
+Each individual user can be set with different persona and will do choice base on them to make noise on the network.
+The script can work with windows and linux machine.
 
-- a FTP server running with a couple of files to share.
+# What is the minimal setup? 
+The minimal setup is one linux machine with postfix, FTP and one user on the machine.
+Linux (for now) is required since the telnet connection have problem passing through SSH when we are on windows and the script
+work in a way where we use telnet for email to simplify reading and seeing them.
+I would recommend to pass all network by your host, so you can run wireshark only on your host and receive all PCAP from 
+all the VM
+
+# What would be a recommended configuration?
+The recommended. usage is 3 to 4 machines to make a network of a couples' user.
+1 Should be a Linux machine running Postfix, Windows Server running a FTP and a DC and one Windows user.
+I would recommend as many user as your machine can handle VM to add more information to your network.
 
 
-main problem : I did not make a windows anything with windows server which mean for our current activity this is lacking. 
-
-
+# Why should I use this? 
+To make larger network traffic without needing to do it yourself or to add noise to exploit to practice larger scale pcap 
+analysis 
