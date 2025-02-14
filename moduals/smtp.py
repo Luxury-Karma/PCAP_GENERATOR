@@ -3,10 +3,17 @@
 import re
 import base64
 import os
-
+from random import randint
 
 # endregion
 
+
+def is_download_file() -> bool:
+    """
+    Decide if we add a file to the email or not with a random number
+    :return: Boolean
+    """
+    return True if randint(0, 1) == 1 else False
 
 # region formatting files for email
 

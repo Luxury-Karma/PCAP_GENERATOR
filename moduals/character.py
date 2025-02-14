@@ -1,4 +1,5 @@
 import json
+import random
 import re
 from moduals.AI_communication import OllamaClient, option_detection
 from moduals import smtp
@@ -68,8 +69,12 @@ class Character:
         else:
             print("didn't choose anything")
 
+
+    #TODO: send the information to the next AI so it can know what happened
     def control_email(self):
-        # TODO: Temporary solution for Windows, The telnet is kinda broken for automation so we will make a SSH connection from the host to the linux server then the linux server make the telnet move. That should solve the problem
+        # TODO: Temporary solution for Windows, The telnet is kinda broken for automation so we will make a SSH
+        #  connection from the host to the linux server then the linux server make the telnet move. That should solve
+        #  the problem
         """
         Give option to the AI and then send the command to the machine through the SSH connection
         to ensure that the email was sent.
@@ -90,14 +95,22 @@ class Character:
                 destination = value
                 break
         message: str = self.ai.generate_response(
-            f'You are sending an email to {destination}. what do you want to write in the email as the message? Do a rolleplay so return only the message.')
+            f'You are sending an email to {destination}. what do you want to write in the email as the message? Do a '
+            f'rolleplay so return only the message.')
         subject: str = self.ai.generate_response(
-            f'You are sending this email {message} to {destination}. You need to find a subject. The subject should be a short phrase of a couple words maximum. You are rollplaying so just tell me exactly what the subject is.')
+            f'You are sending this email {message} to {destination}. You need to find a subject. The subject should '
+            f'be a short phrase of a couple words maximum. You are rollplaying so just tell me exactly what the '
+            f'subject is.')
 
-        print(answer)
+        # Todo: Add more logic to be more in match with the communication if possible
+        files_to_add: list[str] = []
+        if smtp.is_download_file():
+            get_files: list[str] = self.__get_local_files()
+            files_to_add.append(get_files[random.randint(0, len(get_files)-1)])
 
         email_body: str = smtp.make_data(self.email, destination, subject, message,
                                          [])  # TODO: Ensure the body is properly formatted with smtp.py functions
+
         email_content: str = f'From: {self.email}\r\nTo: {destination}\r\nSubject: {subject}\r\n\r\n{email_body}\r\n.'
 
         if self.os != 'Linux':

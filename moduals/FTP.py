@@ -1,5 +1,6 @@
-from moduals.ssh import get_interactive_shell, send_command_interactive
+from moduals.ssh import send_command_interactive
 from paramiko import channel
+from random import randint
 
 
 # TODO: Prepare character to have a FTP credential so we can follow them and their download. and maybe spot a wrong user
