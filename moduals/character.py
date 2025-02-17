@@ -69,9 +69,43 @@ class Character:
         else:
             print("didn't choose anything")
 
+    # TODO: send the information to the next AI so it can know what happened
 
-    #TODO: send the information to the next AI so it can know what happened
-    def control_email(self):
+    def send_email(self, destination: str, subject: str, email_body: str) -> None:
+        email_content: str = f'From: {self.email}\r\nTo: {destination}\r\nSubject: {subject}\r\n\r\n{email_body}\r\n.'
+
+        if self.os != 'Linux':
+            all_commands: list[tuple[str, str]] = [
+                (f'ssh kali@{self.smtp_ip}', 'password'),
+                # (f'yes','password'),
+                (f'kali', 'Last login'),
+                (f'telnet {self.smtp_ip} 25', "220"),
+                ("EHLO localhost", "250"),
+                (f'MAIL FROM: {self.email}', "250"),
+                (f'RCPT TO:{destination}', "250"),
+                ("DATA", "354"),
+                (email_content, "250"),
+                ("QUIT", "221")
+            ]
+            send_multi_shell_command(self.ssh, all_commands, self.os, 2, 'Linux')
+            self.log_user_action('SENT MAIL', 'TEMP',
+                                 f'User({self.ai.name} sent an email with title {subject} to user {destination} with the SMTP server at address : {self.smtp_ip}')
+            return
+
+        all_commands: list[tuple[str, str]] = [
+            (f'telnet {self.smtp_ip} 25', "220"),
+            ("EHLO localhost", "250"),
+            (f'MAIL FROM: {self.email}', "250"),
+            (f'RCPT TO:{destination}', "250"),
+            ("DATA", "354"),
+            (email_content, "250"),
+            ("QUIT", "221")
+        ]
+
+        send_multi_shell_command(self.ssh, all_commands, self.os)
+        return
+
+    def control_email(self) -> dict:
         # TODO: Temporary solution for Windows, The telnet is kinda broken for automation so we will make a SSH
         #  connection from the host to the linux server then the linux server make the telnet move. That should solve
         #  the problem
@@ -106,46 +140,35 @@ class Character:
         files_to_add: list[str] = []
         if smtp.is_download_file():
             get_files: list[str] = self.__get_local_files()
-            files_to_add.append(get_files[random.randint(0, len(get_files)-1)])
+            files_to_add.append(get_files[random.randint(0, len(get_files) - 1)])
 
         email_body: str = smtp.make_data(self.email, destination, subject, message,
                                          [])  # TODO: Ensure the body is properly formatted with smtp.py functions
 
-        email_content: str = f'From: {self.email}\r\nTo: {destination}\r\nSubject: {subject}\r\n\r\n{email_body}\r\n.'
+        self.send_email(destination, subject, email_body)
 
-        if self.os != 'Linux':
-            all_commands: list[tuple[str, str]] = [
-                (f'ssh kali@{self.smtp_ip}', 'password'),
-                # (f'yes','password'),
-                (f'kali', 'Last login'),
-                (f'telnet {self.smtp_ip} 25', "220"),
-                ("EHLO localhost", "250"),
-                (f'MAIL FROM: {self.email}', "250"),
-                (f'RCPT TO:{destination}', "250"),
-                ("DATA", "354"),
-                (email_content, "250"),
-                ("QUIT", "221")
-            ]
-            send_multi_shell_command(self.ssh, all_commands, self.os, 2, 'Linux')
-            self.log_user_action('SENT MAIL', 'TEMP',
-                                 f'User({self.ai.name} sent an email with title {subject} to user {destination} with the SMTP server at address : {self.smtp_ip}')
-            return
+        return {
+            'dest': self.email,
+            'mail': email_body
+        }
 
-        all_commands: list[tuple[str, str]] = [
-            (f'telnet {self.smtp_ip} 25', "220"),
-            ("EHLO localhost", "250"),
-            (f'MAIL FROM: {self.email}', "250"),
-            (f'RCPT TO:{destination}', "250"),
-            ("DATA", "354"),
-            (email_content, "250"),
-            ("QUIT", "221")
-        ]
+    # TODO: send order to the received AI to answer from outside once its done.
+    def email_reception(self, email_received: str):
+        email_from: str = re.findall(r'From:\s(\S+@\S+\.[^\\r]+)', email_received)[
+            0]  # TODO ensure that the \\r is not a \r insted.
+        subject: str = re.findall(r'(Subject:\s)+(.*?)(?=\\r\\n)', email_received)[0]  # TODO same as above
+        email_body: str = re.findall(r'(\\r\\n\\r\\n)(.*?)(?=\\r\\n\.)', email_received)[0]  # TODO : +1
 
-        send_multi_shell_command(self.ssh, all_commands, self.os)
-        self.log_user_action('SENT MAIL', 'TEMP',
-                             f'User({self.ai.name} sent an email with title {subject} to user {destination} with the SMTP server at address : {self.smtp_ip}')
+        answer: str = self.ai.generate_response(
+            f'You have received an email from {email_from}. The subject is : {subject}.'
+            f'The information in the email is this : {email_body}.'
+            f'You will answer this email. You do not need to give me a subject or any other '
+            f'information than what will be in the email'
+            f'You will give me ONLY the information you will answer. Please give me the answer.')
 
-        return
+        email_content: str = f'From: {self.email}\r\nTo: {email_from}\r\nSubject: re:{subject}\r\n\r\n{answer}\r\n.'
+
+        self.send_email(email_from, self.email, email_content)
 
     # region website
 
@@ -153,6 +176,8 @@ class Character:
         _, curl = send_command_to_shell(self.ssh, f'curl {domain_name}')
         return curl
 
+    # TODO : we need to find a way to start process with the web browser
+    # We could do with a bash and ps1 script to do it. We would need admin access tho.
     def open_website(self, domain_name: str) -> None or channel:
         if self.os != 'Linux':
             self.curl_website(domain_name)
@@ -160,12 +185,7 @@ class Character:
             return
         self.curl_website(domain_name)
         return
-        # TODO : We need to find a bether solution than this to open web broswer on the forein host.
-        # What we could do is give them all a bash script that we can control from outside but launch their basic web broswer and go where we tell it.
-        shell: channel = get_interactive_shell(shell=character.ssh)
-        send_command_interactive(shell, f'firefox --headless {domain_name}', '*** You are running in headless mode.',
-                                 os)  # linux
-        return shell
+
 
     def control_website(self):
         """
@@ -180,6 +200,7 @@ class Character:
         # On linux we can launch something like : tmux to launch a browser or : google-chrome-stable https:/www.youtube.com
         pass
 
+    # endregion
     def control_ssh(self):
         """
         Give option to the AI and then send the command to the machine through the SSH connection to ensure that the

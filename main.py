@@ -41,12 +41,35 @@ from moduals.character import Character
 import json
 
 
+def look_answer(information_not_answer:list[dict], ai_info:Character) -> list[dict]:
+    for e in information_not_answer:
+        for key, value in e.items():
+            if key == ai_info.email:
+                ai_info.email_reception(value)
+                information_not_answer.remove(e)
+    return information_not_answer
+
+
+def ai_communication(character: list[Character], information_not_answer: list[dict]):
+
+    for e in character:
+        action: dict = e.make_decision()
+        if action:
+            information_not_answer.append(action)
+        information_not_answer = look_answer(information_not_answer, e)
+
+    return information_not_answer
+
+
 def main():
     information: dict = get_all_ai_info()
     character: list[Character] = setup_all_ai(information)
+    information_not_answer: list[dict] = []
     for i in range(10):
-        for e in character:
-            e.make_decision()
+        information_not_answer = ai_communication(character, information_not_answer)
+
+
+
     print('over')
 
 
