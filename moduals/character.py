@@ -245,25 +245,25 @@ class Character:
 
         prompt:str = 'Your options for SSH connection are : \n'
         i:int  = 1
+        connection_points: list[str] = []
         for key in self.ssh_access.keys():
             prompt = prompt + f' - {i}: {key}'
+            connection_points.append(key)
 
         prompt = prompt + 'Tell me EXACTLY what ip you want to connect too.'
-        answer:str = self.ai.generate_response(prompt)
-        choice:str = ''
-        for key in self.ssh_access.keys():
-            if not key in answer:
-                continue
-            choice = key
-            break
-        all_commands: list[tuple[str, str]] = [
-            (f'ssh {self.ssh_access[choice]["user"]}@{choice}', 'password'),
-            #(f'yes','password'),
-            (f'{self.ssh_access[choice]["password"]}', 'Last login') if self.ssh_access[choice]['os'] == 'Linux' else (f'{self.ssh_access[choice]["password"]}', '(c) Microsoft Corporation. All rights reserved.'),
-        ]
-        send_multi_shell_command(self.ssh,all_commands, self.ssh_access[choice]["os"])
 
-        self.log_user_action("SSH CONNECTION", "TEMP",f" User {self.ai.name} have connected with SSH to host : {choice} with username/password : {self.ssh_access[choice]['user']}/{self.ssh_access[choice]['password']}")
+        answer:str = self.ai.generate_response(prompt,connection_points)
+
+        answer_dic:dict[str:str] = self.ssh_access[answer]
+
+        all_commands: list[tuple[str, str]] = [
+            (f'ssh {answer_dic["user"]}@{answer}', 'password'),
+            #(f'yes','password'),
+            (f'{answer_dic["password"]}', 'Last login') if answer_dic['os'] == 'Linux' else (f'{answer_dic["password"]}', '(c) Microsoft Corporation. All rights reserved.'),
+        ]
+        send_multi_shell_command(self.ssh,all_commands, answer_dic["os"])
+
+        self.log_user_action("SSH CONNECTION", "TEMP",f" User {self.ai.name} have connected with SSH to host : {answer} with username/password : {self.ssh_access[answer]['user']}/{self.ssh_access[answer]['password']}")
 
 
 
@@ -278,6 +278,10 @@ class Character:
         :return: channel connected to the server
         """
         cha: channel = get_interactive_shell(self.ssh)
+        # Todo : find a better way ?
+        if not cha:
+            print("Error at connecting shell. Continuing to next user")
+            return
         command: list[list[str]] = [
             [f'ftp {self.ftp_server}', '220'],
             [f'{self.ftp_user}', '331'],

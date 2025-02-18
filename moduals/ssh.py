@@ -1,5 +1,6 @@
 # TODO : Make random connection to SSH some making as if they where bruteforcing the connection. If its a okay one do a couple random commande to just make pcap.
 import time
+from getopt import error
 
 import paramiko
 from paramiko.client import SSHClient
@@ -38,9 +39,19 @@ def get_interactive_shell(shell: SSHClient) -> channel:
     :param shell: ssh connection
     :return: connected channel
     """
-    int_shell: channel = shell.invoke_shell()
-    time.sleep(1)
-    return int_shell
+    if not shell.get_transport() or not shell.get_transport().is_active():
+        # TODO : REPLACE THIS with a reconnection since we have an AI to do it.
+        # The logic is that if the shell doesn't exist anymore we need to reconnect ( we might have been timed out its not impossible ) 
+        raise ValueError("SSH connection is not active. Cannot open interactive shell.")
+
+    try:
+        int_shell: channel = shell.invoke_shell()
+        time.sleep(1)
+        return int_shell
+    except paramiko.ssh_exception.ChannelException as e:
+        return None
+
+
 
 
 # endregion
@@ -79,6 +90,10 @@ def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, 
     """
 
     shell = get_interactive_shell(ssh)
+    # TODO find a better way ?
+    if not shell:
+        print('Error Connecting to the interactive shell passing to next user')
+        return
     depth: int = 0
     for cmd, wait_for in commands:
         if depth == change_os_position:

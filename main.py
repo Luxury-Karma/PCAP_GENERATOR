@@ -53,7 +53,6 @@ def look_answer(information_not_answer:list[dict], ai_info:Character) -> list[di
 def ai_communication(character: list[Character], information_not_answer: list[dict]):
 
     for e in character:
-        #e.control_ftp()
         action: dict = e.make_decision()
         if action:
             information_not_answer.append(action)
@@ -68,6 +67,7 @@ def main():
     information_not_answer: list[dict] = []
     for i in range(10):
         information_not_answer = ai_communication(character, information_not_answer)
+        print(f'\b-------------- TURN {i} OVER -----------------------')
 
 
 
