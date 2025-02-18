@@ -1,6 +1,6 @@
 import ollama
 import re
-
+from random import randint
 
 def option_detection(answer: str):
     answer = answer.lower()
@@ -38,10 +38,26 @@ class OllamaClient:
         if self.system_message:
             self.conversation_history.append({'role': 'system', 'content': self.system_message})
 
-    def generate_response(self, user_input):
+    def generate_response(self, user_input:str, answer_choices:list[str]|None = None, maximum_attempts:int = 3) -> str:
         self.conversation_history.append({'role': 'user', 'content': user_input})
         response = ollama.chat(model=self.model, messages=self.conversation_history, stream=False)
-        assistant_reply = response['message']['content']
+        assistant_reply: str = response['message']['content']
+        self.conversation_history.append({'role': 'assistant', 'content': assistant_reply})
+        if not answer_choices:
+            return assistant_reply
+        is_random:bool = True
+        for i in range(maximum_attempts):
+            self.conversation_history.append({'role': 'user', 'content': f'Your answer is wrong. Your only options where : {answer_choices}. If you do not choose I will choose for you. What do you want in those options.'})
+            assistant_reply = ollama.chat(model=self.model, messages=self.conversation_history, stream=False)['message']['content']
+            for e in assistant_reply:
+                if e not in response:
+                    continue
+                assistant_reply = e
+                is_random = False
+                break
+            if is_random:
+               assistant_reply =  answer_choices[randint(0,len(answer_choices)-1)]
+
+
         self.conversation_history.append({'role': 'assistant', 'content': assistant_reply})
         return assistant_reply
-

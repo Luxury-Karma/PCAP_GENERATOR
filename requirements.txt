@@ -1,3 +1,4 @@
 scapy~=2.6.1
-paramiko~=3.5.1
+paramiko~=3.5.0
 ollama~=0.4.7
+chardet~=5.2.0

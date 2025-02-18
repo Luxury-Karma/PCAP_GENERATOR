@@ -1,6 +1,8 @@
 import json
 import random
 import re
+from calendar import prmonth
+
 from moduals.AI_communication import OllamaClient, option_detection
 from moduals import smtp
 from moduals.ssh import send_multi_shell_command, send_command_to_shell, get_interactive_shell, send_command_interactive
@@ -14,19 +16,21 @@ from moduals import FTP
 
 def find_chosen_file(answer: str, files: list[str]) -> str:
     f: str = ''
+    i:int = 1
     for e in files:
         r: str = rf'{e}'
-        catch: list[str] = re.findall(e, answer)
-        if catch:
+
+        if e in answer or str(i) in answer:
             f = e
             break
+        i += 1
     return f
 
 
 class Character:
     def __init__(self, ai: OllamaClient, computer_connection: SSHClient, smtp_ip_ip: str, character_mail: str,
                  character_os: str,
-                 character_ftp_server: str, download_directory: str, upload_directory: str
+                 character_ftp_server: str, download_directory: str, upload_directory: str, ssh_access:dict
                  , character_ftp_user: str = 'anonymous', character_ftp_password: str = ''):
         """
         Each net user with their action and all the information we need to make them work
@@ -47,16 +51,22 @@ class Character:
         self.ftp_pass: str = character_ftp_password
         self.download_directory: str = download_directory
         self.upload_directory: str = upload_directory
+        self.ssh_access:dict = ssh_access
 
     def make_decision(self):
-        prompt: str = ('We get a new decision. Right now your options are : '
-                       '1 - go on a website\n'
-                       '2 - send a email\n'
-                       '3 - connect to an other device with ssh\n'
-                       '4 - download or upload a file with FTP\n'
-                       'You need to choose the option and tell me the full name for detection.\n'
+        option = ['website', 'email', 'FTP'] if self.ssh_access == {} else ['website', 'email', 'FTP', 'SSH']
+
+
+
+        prompt: str = 'We get a new decision. Right now your options are : '
+
+        for e in option:
+            prompt += prompt + f'\n {e}'
+
+        prompt = prompt + ('You need to choose the option and tell me the full name for detection.\n'
                        f'also for your knowledge your last decision was : {self.last_decision}. Try to be imaginative !')
-        decision = option_detection(self.ai.generate_response(prompt))
+
+        decision = option_detection(self.ai.generate_response(prompt,option))
         self.last_decision = decision
         if decision == 'website':
             self.control_website()
@@ -69,6 +79,7 @@ class Character:
         else:
             print("didn't choose anything")
 
+    #region email
     # TODO: send the information to the next AI so it can know what happened
 
     def send_email(self, destination: str, subject: str, email_body: str) -> None:
@@ -169,22 +180,19 @@ class Character:
         email_content: str = f'From: {self.email}\r\nTo: {email_from}\r\nSubject: re:{subject}\r\n\r\n{answer}\r\n.'
 
         self.send_email(email_from, self.email, email_content)
+    #endregion
 
     # region website
 
     def curl_website(self, domain_name: str) -> str:
         _, curl = send_command_to_shell(self.ssh, f'curl {domain_name}')
+        self.log_user_action('CURL WEB BROWSER','TEMP',f'The user {self.ai.name} went on the website: {domain_name}')
         return curl
 
     # TODO : we need to find a way to start process with the web browser
     # We could do with a bash and ps1 script to do it. We would need admin access tho.
     def open_website(self, domain_name: str) -> None or channel:
-        if self.os != 'Linux':
-            self.curl_website(domain_name)
-            print('windows')
-            return
-        self.curl_website(domain_name)
-        return
+        pass
 
 
     def control_website(self):
@@ -193,6 +201,30 @@ class Character:
         website is open on the local machine
         :return:
         """
+        website_options:dict[str:dict[str:str]]
+        with open('./Ai_information/webpages.json', 'r') as f:
+            website_options = json.load(f)
+        format_website_ai:str = ''
+        i:int = 1
+        for key in website_options.keys() :
+            format_website_ai += format_website_ai + f'\n - {i}: website name : {key}, Website usage : {website_options[key]['explanation']}'
+
+
+        answer:str = self.ai.generate_response(f'You have chosen to open a website. Here are your options : {format_website_ai}\n'
+                                  f'You need to tell me the full website name exactly as written in your options.')
+        website:str = ''
+        answer = answer.lower()
+        for key in website_options.keys():
+            if not re.findall(rf'{key}'.lower(), answer):
+                continue
+            website = key
+            break
+        # TODO find a way to start a web browser on the machine and potentially use automated tool to make them do actions.
+        self.curl_website(website_options[website]['url'])
+
+
+
+
 
         # Windows commands to launch website from browser : $<variable> = start-process "WEBSITE" -Passthru
         # to stop : stop-process -Id $proc.Id
@@ -201,15 +233,42 @@ class Character:
         pass
 
     # endregion
+
+    #region SSH
+
     def control_ssh(self):
         """
         Give option to the AI and then send the command to the machine through the SSH connection to ensure that the
         SSH connection is made by the user.
         :return:
         """
-        pass
 
-    # endregion
+        prompt:str = 'Your options for SSH connection are : \n'
+        i:int  = 1
+        for key in self.ssh_access.keys():
+            prompt = prompt + f' - {i}: {key}'
+
+        prompt = prompt + 'Tell me EXACTLY what ip you want to connect too.'
+        answer:str = self.ai.generate_response(prompt)
+        choice:str = ''
+        for key in self.ssh_access.keys():
+            if not key in answer:
+                continue
+            choice = key
+            break
+        all_commands: list[tuple[str, str]] = [
+            (f'ssh {self.ssh_access[choice]["user"]}@{choice}', 'password'),
+            #(f'yes','password'),
+            (f'{self.ssh_access[choice]["password"]}', 'Last login') if self.ssh_access[choice]['os'] == 'Linux' else (f'{self.ssh_access[choice]["password"]}', '(c) Microsoft Corporation. All rights reserved.'),
+        ]
+        send_multi_shell_command(self.ssh,all_commands, self.ssh_access[choice]["os"])
+
+        self.log_user_action("SSH CONNECTION", "TEMP",f" User {self.ai.name} have connected with SSH to host : {choice} with username/password : {self.ssh_access[choice]['user']}/{self.ssh_access[choice]['password']}")
+
+
+
+
+    #regionend
 
     # region FTP
 
@@ -243,16 +302,8 @@ class Character:
         return files, ai_visual_files
 
     def __get_chosen_file(self, ai_visual_files: str, files: list[str]) -> str:
-        answer = self.ai.generate_response(f'Here are all of the files from the FTP server : {ai_visual_files}\n'
-                                           f'for this answer you need to reply with the name of one of these files\n')
-        print(ai_visual_files)
-        file_chosen: str = find_chosen_file(answer, files)
-        while file_chosen == '':
-            answer = self.ai.generate_response(f'No, the file you asked does not exist : {answer}.'
-                                               f'You need to answer one of these : {ai_visual_files}')
-            file_chosen = find_chosen_file(answer, files)
-            print(f"For some reason {self.ai.name} do not want to choose a proper file. Last answer: \n{answer}")
-        return file_chosen
+        return self.ai.generate_response(f'Here are all of the files from the FTP server : {ai_visual_files}\n'
+                                           f'for this answer you need to reply with the name of one of these files\n',files)
 
     def __download_file_ftp(self) -> str:
         from moduals import FTP
@@ -280,28 +331,13 @@ class Character:
 
         files: list[str] = self.__get_local_files()
         answer: str = self.ai.generate_response(
-            f'Here are all the files you can choose from : {files}.What file do you whant to send to the FTP server?')
-        choice: str = ''
+            f'Here are all the files you can choose from : {files}.What file do you whant to send to the FTP server?',files)
 
-        # I miss do while 🥲
-        for e in files:
-            if re.findall(e, answer):
-                choice = e
-                break
-        # TODO use a proper output sanitiser with limitation and worst case " random " selection or something like that.
-        # Actualy randomly selecting the file might be better? lets see in the future now I need to leave 😪
-        while choice == '':
-            answer = self.ai.generate_response(
-                f'I told you those : {files} are the only one you can choose. You need to choose one of those. Its an order.')
-            for e in files:
-                if re.findall(rf'\b{re.escape(e)}\b', answer):  # Use re.escape to handle special characters
-                    choice = e
-                    break
         cha: channel = self.connect_ftp_server()
-        FTP.upload_file(cha, self.upload_directory, choice, self.os)
+        FTP.upload_file(cha, self.upload_directory, answer, self.os)
         FTP.quit_channel(cha, self.os)
         cha.close()
-        return choice
+        return answer
 
     def control_ftp(self):
         """
@@ -311,15 +347,13 @@ class Character:
         """
         answer: str = self.ai.generate_response(
             'You have chosen to transfer FTP file ( either download or upload ). Do you wish to download'
-            'or upload? those two are the only choice you can choose.')
+            'or upload? those two are the only choice you can choose.', ['upload', 'download'])
 
-        # TODO: add output validation
-        answer = answer.lower()
-        print(f'{answer}')
-
+        #file: str = self.__download_file_ftp()
         file: str = self.__upload_file_ftp() if re.findall('upload', answer) else self.__download_file_ftp()
         self.log_user_action('UPLOAD FTP' if re.findall('upload', answer) else 'DOWNLOAD FTP', 'TEMP',
-                             f'The user({self.ai.name}) uploaded the file {file}')
+                             f'The user({self.ai.name}) uploaded the file {file}' if re.findall('upload', answer)
+                             else f'The user({self.ai.name}) Downloaded the file {file}')
 
     # endregion
 

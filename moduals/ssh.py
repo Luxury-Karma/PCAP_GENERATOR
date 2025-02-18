@@ -4,6 +4,7 @@ import time
 import paramiko
 from paramiko.client import SSHClient
 from paramiko import channel
+import chardet
 
 
 # region connections
@@ -45,26 +46,24 @@ def get_interactive_shell(shell: SSHClient) -> channel:
 # endregion
 
 # region Shell Control
-def send_command_to_shell(shell: paramiko.SSHClient, command: str) -> (bool, str):
-    """
-    Send a single command to the connected SSH
-    :param shell: SSH connected
-    :param command: what to send
-    :return: if command worked and the output
-    """
 
+def send_command_to_shell(shell: paramiko.SSHClient, command: str) -> (bool, str):
     stdin, stdout, stderr = shell.exec_command(command)
 
-    exit_status = stdout.channel.recv_exit_status()  # Get exit status
-    output = stdout.read().decode().strip()  # Read standard output
-    error = stderr.read().decode().strip()  # Read standard error
+    exit_status = stdout.channel.recv_exit_status()
+    raw_output = stdout.read()
+    detected_encoding = chardet.detect(raw_output)['encoding']
+
+    output = raw_output.decode(detected_encoding or 'utf-8', errors='replace').strip()
+    error = stderr.read().decode('utf-8', errors='replace').strip()
 
     if exit_status == 0:
         print(f"Success: {output}")
-        return True, output  # Indicating success
+        return True, output
     else:
         print(f"Error: {error}")
-        return False, error  # Indicating failure
+        return False, error
+
 
 
 def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, str]], os: str,
