@@ -28,7 +28,7 @@ def connect_to_ssh_server(ssh_server_ip: str, user_name: str, password: str, por
             f"trying to connect at : {ssh_server_ip}, with the user and password : {user_name}/{password} on port {port}")
         ssh.connect(hostname=ssh_server_ip, port=port, username=user_name, password=password, timeout=timeout)
         return ssh, True
-    except  Exception as e:
+    except Exception as e:
         print(f'could not connect to ssh {e}')
         return ssh, False
 
@@ -40,8 +40,7 @@ def get_interactive_shell(shell: SSHClient) -> channel:
     :return: connected channel
     """
     if not shell.get_transport() or not shell.get_transport().is_active():
-        # TODO : REPLACE THIS with a reconnection since we have an AI to do it.
-        # The logic is that if the shell doesn't exist anymore we need to reconnect ( we might have been timed out its not impossible ) 
+        print('\033[93m' + ' host disconnected. need reconnection. an Error probably happened in the character object.')
         raise ValueError("SSH connection is not active. Cannot open interactive shell.")
 
     try:
@@ -50,8 +49,6 @@ def get_interactive_shell(shell: SSHClient) -> channel:
         return int_shell
     except paramiko.ssh_exception.ChannelException as e:
         return None
-
-
 
 
 # endregion
@@ -74,7 +71,6 @@ def send_command_to_shell(shell: paramiko.SSHClient, command: str) -> (bool, str
     else:
         print(f"Error: {error}")
         return False, error
-
 
 
 def send_multi_shell_command(ssh: paramiko.SSHClient, commands: list[tuple[str, str]], os: str,

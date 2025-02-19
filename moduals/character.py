@@ -5,7 +5,8 @@ from calendar import prmonth
 
 from moduals.AI_communication import OllamaClient, option_detection
 from moduals import smtp
-from moduals.ssh import send_multi_shell_command, send_command_to_shell, get_interactive_shell, send_command_interactive
+from moduals.ssh import send_multi_shell_command, send_command_to_shell, get_interactive_shell, \
+    send_command_interactive, connect_to_ssh_server
 from paramiko.client import SSHClient
 from paramiko import channel
 import datetime
@@ -16,7 +17,7 @@ from moduals import FTP
 
 def find_chosen_file(answer: str, files: list[str]) -> str:
     f: str = ''
-    i:int = 1
+    i: int = 1
     for e in files:
         r: str = rf'{e}'
 
@@ -28,9 +29,10 @@ def find_chosen_file(answer: str, files: list[str]) -> str:
 
 
 class Character:
-    def __init__(self, ai: OllamaClient, computer_connection: SSHClient, smtp_ip_ip: str, character_mail: str,
+    def __init__(self, ai: OllamaClient, computer_ip: str, computer_username: str, computer_password: str,
+                 smtp_ip_ip: str, character_mail: str,
                  character_os: str,
-                 character_ftp_server: str, download_directory: str, upload_directory: str, ssh_access:dict
+                 character_ftp_server: str, download_directory: str, upload_directory: str, ssh_access: dict
                  , character_ftp_user: str = 'anonymous', character_ftp_password: str = ''):
         """
         Each net user with their action and all the information we need to make them work
@@ -41,7 +43,14 @@ class Character:
         :param character_os: What os is the user using ( mostly use for commands ) (options : Windows, Windows Server, Linux)
         """
         self.ai: OllamaClient = ai
-        self.ssh: SSHClient = computer_connection
+        self.ssh_self_connection: dict = {
+            'username': computer_username,
+            'password': computer_password,
+            'ip': computer_ip
+        }
+        ssh, _ = connect_to_ssh_server(self.ssh_self_connection['ip'], self.ssh_self_connection['username'],
+                                       self.ssh_self_connection['password'])
+        self.ssh: SSHClient = ssh
         self.last_decision: str = ''
         self.smtp_ip: str = smtp_ip_ip
         self.email: str = character_mail
@@ -51,12 +60,10 @@ class Character:
         self.ftp_pass: str = character_ftp_password
         self.download_directory: str = download_directory
         self.upload_directory: str = upload_directory
-        self.ssh_access:dict = ssh_access
+        self.ssh_access: dict = ssh_access
 
     def make_decision(self):
         option = ['website', 'email', 'FTP'] if self.ssh_access == {} else ['website', 'email', 'FTP', 'SSH']
-
-
 
         prompt: str = 'We get a new decision. Right now your options are : '
 
@@ -64,9 +71,9 @@ class Character:
             prompt += prompt + f'\n {e}'
 
         prompt = prompt + ('You need to choose the option and tell me the full name for detection.\n'
-                       f'also for your knowledge your last decision was : {self.last_decision}. Try to be imaginative !')
+                           f'also for your knowledge your last decision was : {self.last_decision}. Try to be imaginative !')
 
-        decision = option_detection(self.ai.generate_response(prompt,option))
+        decision = option_detection(self.ai.generate_response(prompt, option))
         self.last_decision = decision
         if decision == 'website':
             self.control_website()
@@ -79,7 +86,7 @@ class Character:
         else:
             print("didn't choose anything")
 
-    #region email
+    # region email
     # TODO: send the information to the next AI so it can know what happened
 
     def send_email(self, destination: str, subject: str, email_body: str) -> None:
@@ -98,6 +105,7 @@ class Character:
                 (email_content, "250"),
                 ("QUIT", "221")
             ]
+            self.ensure_live_connection_ssh()
             send_multi_shell_command(self.ssh, all_commands, self.os, 2, 'Linux')
             self.log_user_action('SENT MAIL', 'TEMP',
                                  f'User({self.ai.name} sent an email with title {subject} to user {destination} with the SMTP server at address : {self.smtp_ip}')
@@ -112,7 +120,7 @@ class Character:
             (email_content, "250"),
             ("QUIT", "221")
         ]
-
+        self.ensure_live_connection_ssh()
         send_multi_shell_command(self.ssh, all_commands, self.os)
         return
 
@@ -180,13 +188,15 @@ class Character:
         email_content: str = f'From: {self.email}\r\nTo: {email_from}\r\nSubject: re:{subject}\r\n\r\n{answer}\r\n.'
 
         self.send_email(email_from, self.email, email_content)
-    #endregion
+
+    # endregion
 
     # region website
 
     def curl_website(self, domain_name: str) -> str:
+        self.ensure_live_connection_ssh()
         _, curl = send_command_to_shell(self.ssh, f'curl {domain_name}')
-        self.log_user_action('CURL WEB BROWSER','TEMP',f'The user {self.ai.name} went on the website: {domain_name}')
+        self.log_user_action('CURL WEB BROWSER', 'TEMP', f'The user {self.ai.name} went on the website: {domain_name}')
         return curl
 
     # TODO : we need to find a way to start process with the web browser
@@ -194,25 +204,24 @@ class Character:
     def open_website(self, domain_name: str) -> None or channel:
         pass
 
-
     def control_website(self):
         """
         Give option to the AI and then send the command to the machine through the SSH connection to ensure that the
         website is open on the local machine
         :return:
         """
-        website_options:dict[str:dict[str:str]]
+        website_options: dict[str:dict[str:str]]
         with open('./Ai_information/webpages.json', 'r') as f:
             website_options = json.load(f)
-        format_website_ai:str = ''
-        i:int = 1
-        for key in website_options.keys() :
-            format_website_ai += format_website_ai + f'\n - {i}: website name : {key}, Website usage : {website_options[key]['explanation']}'
+        format_website_ai: str = ''
+        i: int = 1
+        for key in website_options.keys():
+            format_website_ai += format_website_ai + f'\n - {i}: website name : {key}, Website usage : {website_options[key]["explanation"]}'
 
-
-        answer:str = self.ai.generate_response(f'You have chosen to open a website. Here are your options : {format_website_ai}\n'
-                                  f'You need to tell me the full website name exactly as written in your options.')
-        website:str = ''
+        answer: str = self.ai.generate_response(
+            f'You have chosen to open a website. Here are your options : {format_website_ai}\n'
+            f'You need to tell me the full website name exactly as written in your options.')
+        website: str = ''
         answer = answer.lower()
         for key in website_options.keys():
             if not re.findall(rf'{key}'.lower(), answer):
@@ -222,10 +231,6 @@ class Character:
         # TODO find a way to start a web browser on the machine and potentially use automated tool to make them do actions.
         self.curl_website(website_options[website]['url'])
 
-
-
-
-
         # Windows commands to launch website from browser : $<variable> = start-process "WEBSITE" -Passthru
         # to stop : stop-process -Id $proc.Id
         # Else we can use : curl + webpage to go on the webpage on both OS
@@ -234,7 +239,7 @@ class Character:
 
     # endregion
 
-    #region SSH
+    # region SSH
 
     def control_ssh(self):
         """
@@ -243,8 +248,8 @@ class Character:
         :return:
         """
 
-        prompt:str = 'Your options for SSH connection are : \n'
-        i:int  = 1
+        prompt: str = 'Your options for SSH connection are : \n'
+        i: int = 1
         connection_points: list[str] = []
         for key in self.ssh_access.keys():
             prompt = prompt + f' - {i}: {key}'
@@ -252,23 +257,30 @@ class Character:
 
         prompt = prompt + 'Tell me EXACTLY what ip you want to connect too.'
 
-        answer:str = self.ai.generate_response(prompt,connection_points)
+        answer: str = self.ai.generate_response(prompt, connection_points)
 
-        answer_dic:dict[str:str] = self.ssh_access[answer]
+        answer_dic: dict[str:str] = self.ssh_access[answer]
 
         all_commands: list[tuple[str, str]] = [
             (f'ssh {answer_dic["user"]}@{answer}', 'password'),
-            #(f'yes','password'),
-            (f'{answer_dic["password"]}', 'Last login') if answer_dic['os'] == 'Linux' else (f'{answer_dic["password"]}', '(c) Microsoft Corporation. All rights reserved.'),
+            # (f'yes','password'),
+            (f'{answer_dic["password"]}', 'Last login') if answer_dic['os'] == 'Linux' else (
+            f'{answer_dic["password"]}', '(c) Microsoft Corporation. All rights reserved.'),
         ]
-        send_multi_shell_command(self.ssh,all_commands, answer_dic["os"])
+        self.ensure_live_connection_ssh()
+        send_multi_shell_command(self.ssh, all_commands, answer_dic["os"])
 
-        self.log_user_action("SSH CONNECTION", "TEMP",f" User {self.ai.name} have connected with SSH to host : {answer} with username/password : {self.ssh_access[answer]['user']}/{self.ssh_access[answer]['password']}")
+        self.log_user_action("SSH CONNECTION", "TEMP",
+                             f" User {self.ai.name} have connected with SSH to host : {answer} with username/password : {self.ssh_access[answer]['user']}/{self.ssh_access[answer]['password']}")
 
+    def ensure_live_connection_ssh(self):
+        if self.ssh.get_transport() or self.ssh.get_transport().is_active():
+            return
+        print('\033[93m' + f'host ({self.ai.name} got disconnected reconnecting before starting next action')
+        self.ssh, _ = connect_to_ssh_server(self.ssh_self_connection['ip'], self.ssh_self_connection['username'],
+                                            self.ssh_self_connection['password'])
 
-
-
-    #regionend
+    # regionend
 
     # region FTP
 
@@ -277,6 +289,7 @@ class Character:
         Connect the interactive channel to the FTP server for the AI.
         :return: channel connected to the server
         """
+        self.ensure_live_connection_ssh()
         cha: channel = get_interactive_shell(self.ssh)
         # Todo : find a better way ?
         if not cha:
@@ -287,6 +300,7 @@ class Character:
             [f'{self.ftp_user}', '331'],
             [f'{self.ftp_pass}', '230'],
         ]
+        self.ensure_live_connection_ssh()
         for e in command:
             send_command_interactive(cha, e[0], e[1], self.os)
 
@@ -307,7 +321,8 @@ class Character:
 
     def __get_chosen_file(self, ai_visual_files: str, files: list[str]) -> str:
         return self.ai.generate_response(f'Here are all of the files from the FTP server : {ai_visual_files}\n'
-                                           f'for this answer you need to reply with the name of one of these files\n',files)
+                                         f'for this answer you need to reply with the name of one of these files\n',
+                                         files)
 
     def __download_file_ftp(self) -> str:
         from moduals import FTP
@@ -327,6 +342,7 @@ class Character:
     def __get_local_files(self) -> list[str]:
         # get local file we can upload
         command = f'ls {self.upload_directory}' if self.os == 'Linux' else f'dir {self.upload_directory} /b'
+        self.ensure_live_connection_ssh()
         _, out = send_command_to_shell(self.ssh, command)
         return out.split('\n') if self.os == 'Linux' else [line.replace('\r', '') for line in out.split('\n')]
 
@@ -335,7 +351,8 @@ class Character:
 
         files: list[str] = self.__get_local_files()
         answer: str = self.ai.generate_response(
-            f'Here are all the files you can choose from : {files}.What file do you whant to send to the FTP server?',files)
+            f'Here are all the files you can choose from : {files}.What file do you whant to send to the FTP server?',
+            files)
 
         cha: channel = self.connect_ftp_server()
         FTP.upload_file(cha, self.upload_directory, answer, self.os)
@@ -353,7 +370,7 @@ class Character:
             'You have chosen to transfer FTP file ( either download or upload ). Do you wish to download'
             'or upload? those two are the only choice you can choose.', ['upload', 'download'])
 
-        #file: str = self.__download_file_ftp()
+        # file: str = self.__download_file_ftp()
         file: str = self.__upload_file_ftp() if re.findall('upload', answer) else self.__download_file_ftp()
         self.log_user_action('UPLOAD FTP' if re.findall('upload', answer) else 'DOWNLOAD FTP', 'TEMP',
                              f'The user({self.ai.name}) uploaded the file {file}' if re.findall('upload', answer)

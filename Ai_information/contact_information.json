@@ -8,6 +8,7 @@
       "username": "kali",
       "password": "kali",
       "ftp_server": "10.0.0.210",
+      "smtp_server": "10.0.0.14",
       "upload_directory": "/home/kali/Pictures/",
       "download_directory": "/home/kali/Downloads/",
       "SSH": {}
@@ -20,6 +21,7 @@
       "username": "Administrator",
       "password": "P@ssword",
       "ftp_server": "10.0.0.210",
+      "smtp_server": "10.0.0.14",
       "upload_directory": "C:\\share",
       "download_directory": "C:\\download",
       "SSH": {}
@@ -32,6 +34,7 @@
       "username": "user",
       "password": "user",
       "ftp_server": "10.0.0.210",
+      "smtp_server": "10.0.0.14",
       "upload_directory": "C:\\share",
       "download_directory": "C:\\download",
       "SSH": {
